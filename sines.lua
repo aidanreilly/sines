@@ -240,7 +240,7 @@ function keys_down()
     --set notes
     for i = 1,16 do
       set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
-      mul(i, 0)
+      set_vol(i, 0)
       set_fm_index(i, 3)
       sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
       freq_values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -274,7 +274,7 @@ function set_unison()
       current_cents = cents_values[i]
       current_octave = "0"
       set_freq(i, freq_values[i])
-      mul(i, 0)
+      set_vol(i, 0)
       set_fm_index(i, index_values[i])
     end
   end
@@ -360,7 +360,7 @@ function enc(n, delta)
       --set the slider value in the gui
       sliders[edit+1] = sliders[edit+1] + delta
       amp_value = util.clamp(((sliders[edit+1] + delta) * .026), 0.0, 1.0)
-      mul(edit+1, amp_value)
+      set_vol(edit+1, amp_value)
       if sliders[edit+1] > 32 then sliders[edit+1] = 32 end
       if sliders[edit+1] < 0 then sliders[edit+1] = 0 end
     elseif key_2_pressed == 1 and key_3_pressed == 0 then

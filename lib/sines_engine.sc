@@ -9,7 +9,7 @@ Engine_Sines : CroneEngine {
 
 	alloc {
 		//https://depts.washington.edu/dxscdoc/Help/Tutorials/Mark_Polishook_tutorial/18_Frequency_modulation.html
-		SynthDef.new(\fm1, { arg bus = 0, freq = 440, carPartial = 1, modPartial = 1, index = 3, mul = 0.05, pan = 0;
+		SynthDef.new(\fm1, { arg out, freq = 440, carPartial = 1, modPartial = 1, index = 3, mul = 0.05, pan = 0;
 			// index values usually are between 0 and 24
 			// carPartial :: modPartial => car/mod ratio
 
@@ -58,19 +58,19 @@ Engine_Sines : CroneEngine {
 
 			//SHITTY BOUNCING BALL
 			//sig = Decay.ar(Impulse.ar(XLine.kr(1,50,20), 0.25), 0.2, Pan2.ar(car, pan), 0);
-			Out.ar(bus, sig)			
+			Out.ar(out, sig)			
 		}).add;
 
 		// make 16 synths, each using the def
 		synths = Array.fill(16, {
-			var bus;
+			var out;
 			var freq;
 			var carPartial;
 			var modPartial;
 			var index;
 			var mul;
 			var pan;
-			var params = [\bus, bus, \freq, freq, \carPartial, carPartial, \modPartial, modPartial, \index, index, \mul, mul, \pan, pan];
+			var params = [out, \freq, freq, \carPartial, carPartial, \modPartial, modPartial, \index, index, \mul, mul, \pan, pan];
 			params.postln;
 			// this is where we supply the name of the def we made
 			Synth.new(\fm1, params, target: context.og);
