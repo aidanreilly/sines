@@ -81,7 +81,7 @@ function build_scale()
     index_values[i] = 3
     cents_values[i] = 0
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
-    mul(i, 0)
+    set_vol(i, 0)
     set_fm_index(i, index_values[i])
     octave_values[i] = "0" 
     current_octave = "0"
@@ -132,26 +132,26 @@ end
 
 function set_synth_pan(synth_num, value)
   --set pan
-  if synth_num == 1 then engine.fm_sine_synth1_pan(value)
-  elseif synth_num == 2 then engine.fm_sine_synth2_pan(value)
-  elseif synth_num == 3 then engine.fm_sine_synth3_pan(value)
-  elseif synth_num == 4 then engine.fm_sine_synth4_pan(value)
-  elseif synth_num == 5 then engine.fm_sine_synth5_pan(value)
-  elseif synth_num == 6 then engine.fm_sine_synth6_pan(value)
-  elseif synth_num == 7 then engine.fm_sine_synth7_pan(value)
-  elseif synth_num == 8 then engine.fm_sine_synth8_pan(value)
-  elseif synth_num == 9 then engine.fm_sine_synth9_pan(value)
-  elseif synth_num == 10 then engine.fm_sine_synth10_pan(value)
-  elseif synth_num == 11 then engine.fm_sine_synth11_pan(value)
-  elseif synth_num == 12 then engine.fm_sine_synth12_pan(value)
-  elseif synth_num == 13 then engine.fm_sine_synth13_pan(value)
-  elseif synth_num == 14 then engine.fm_sine_synth14_pan(value)
-  elseif synth_num == 15 then engine.fm_sine_synth15_pan(value)
-  elseif synth_num == 16 then engine.fm_sine_synth16_pan(value)
+  if synth_num == 1 then engine.pan1(value)
+  elseif synth_num == 2 then engine.pan2(value)
+  elseif synth_num == 3 then engine.pan3(value)
+  elseif synth_num == 4 then engine.pan4(value)
+  elseif synth_num == 5 then engine.pan5(value)
+  elseif synth_num == 6 then engine.pan6(value)
+  elseif synth_num == 7 then engine.pan7(value)
+  elseif synth_num == 8 then engine.pan8(value)
+  elseif synth_num == 9 then engine.pan9(value)
+  elseif synth_num == 10 then engine.pan10(value)
+  elseif synth_num == 11 then engine.pan11(value)
+  elseif synth_num == 12 then engine.pan12(value)
+  elseif synth_num == 13 then engine.pan13(value)
+  elseif synth_num == 14 then engine.pan14(value)
+  elseif synth_num == 15 then engine.pan15(value)
+  elseif synth_num == 16 then engine.pan16(value)
   end
 end
 
-function mul(synth_num, value)
+function set_vol(synth_num, value)
   if synth_num == 1 then engine.mul1(value)
   elseif synth_num == 2 then engine.mul2(value)
   elseif synth_num == 3 then engine.mul3(value)
@@ -171,23 +171,23 @@ function mul(synth_num, value)
   end
 end
 
-function mul_from_cc(cc_num, value)
-  if cc_num == 32 then engine.mul(value)
-  elseif cc_num == 33 then engine.mul(value)
-  elseif cc_num == 34 then engine.mul(value)
-  elseif cc_num == 35 then engine.mul(value)
-  elseif cc_num == 36 then engine.mul(value)
-  elseif cc_num == 37 then engine.mul(value)
-  elseif cc_num == 38 then engine.mul(value)
-  elseif cc_num == 39 then engine.mul(value)
-  elseif cc_num == 40 then engine.mul(value)
-  elseif cc_num == 41 then engine.mul(value)
-  elseif cc_num == 42 then engine.mul(value)
-  elseif cc_num == 43 then engine.mul(value)
-  elseif cc_num == 44 then engine.mul(value)
-  elseif cc_num == 45 then engine.mul(value)
-  elseif cc_num == 46 then engine.mul(value)
-  elseif cc_num == 47 then engine.mul(value)
+function set_vol_from_cc(cc_num, value)
+  if cc_num == 32 then engine.mul1(value)
+  elseif cc_num == 33 then engine.mul2(value)
+  elseif cc_num == 34 then engine.mul3(value)
+  elseif cc_num == 35 then engine.mul4(value)
+  elseif cc_num == 36 then engine.mul5(value)
+  elseif cc_num == 37 then engine.mul6(value)
+  elseif cc_num == 38 then engine.mul7(value)
+  elseif cc_num == 39 then engine.mul8(value)
+  elseif cc_num == 40 then engine.mul9(value)
+  elseif cc_num == 41 then engine.mul10(value)
+  elseif cc_num == 42 then engine.mul11(value)
+  elseif cc_num == 43 then engine.mul12(value)
+  elseif cc_num == 44 then engine.mul13(value)
+  elseif cc_num == 45 then engine.mul14(value)
+  elseif cc_num == 46 then engine.mul15(value)
+  elseif cc_num == 47 then engine.mul16(value)
   end
 end
 
@@ -218,7 +218,7 @@ m.event = function(data)
   if d.type == "cc" then
     --clamp the cc value to acceptable range for engine sinOsc
     cc_val = util.clamp((d.val/127), 0.0, 1.0)
-    mul_from_cc(d.cc, cc_val)
+    set_vol_from_cc(d.cc, cc_val)
     --edit is the current slider
     edit = map_cc_to_slider(d.cc)
     current_index = index_values[edit+1]
