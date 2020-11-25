@@ -38,22 +38,6 @@ MusicUtil = require "musicutil"
 
 function init()
   print("loaded Sines engine")
-  engine.mul1(0)
-  engine.mul2(0)
-  engine.mul3(0)
-  engine.mul4(0)
-  engine.mul5(0)
-  engine.mul6(0)
-  engine.mul7(0)
-  engine.mul8(0)
-  engine.mul9(0)
-  engine.mul10(0)
-  engine.mul11(0)
-  engine.mul12(0)
-  engine.mul13(0)
-  engine.mul14(0)
-  engine.mul15(0)
-  engine.mul16(0)
   add_params()
 end
 
