@@ -73,126 +73,29 @@ end
 
 function set_fm_index(synth_num, value)
   --set index between 0-24 for pleasant sounds
-  if synth_num == 1 then engine.index1(value)
-  elseif synth_num == 2 then engine.index2(value)
-  elseif synth_num == 3 then engine.index3(value)
-  elseif synth_num == 4 then engine.index4(value)
-  elseif synth_num == 5 then engine.index5(value)
-  elseif synth_num == 6 then engine.index6(value)
-  elseif synth_num == 7 then engine.index7(value)
-  elseif synth_num == 8 then engine.index8(value)
-  elseif synth_num == 9 then engine.index9(value)
-  elseif synth_num == 10 then engine.index10(value)
-  elseif synth_num == 11 then engine.index11(value)
-  elseif synth_num == 12 then engine.index12(value)
-  elseif synth_num == 13 then engine.index13(value)
-  elseif synth_num == 14 then engine.index14(value)
-  elseif synth_num == 15 then engine.index15(value)
-  elseif synth_num == 16 then engine.index16(value)
-  end
+  engine.index(synth_num, value)
 end
 
 function set_freq(synth_num, value)
-  --set freq
-  if synth_num == 1 then engine.freq1(value)
-  elseif synth_num == 2 then engine.freq2(value)
-  elseif synth_num == 3 then engine.freq3(value)
-  elseif synth_num == 4 then engine.freq4(value)
-  elseif synth_num == 5 then engine.freq5(value)
-  elseif synth_num == 6 then engine.freq6(value)
-  elseif synth_num == 7 then engine.freq7(value)
-  elseif synth_num == 8 then engine.freq8(value)
-  elseif synth_num == 9 then engine.freq9(value)
-  elseif synth_num == 10 then engine.freq10(value)
-  elseif synth_num == 11 then engine.freq11(value)
-  elseif synth_num == 12 then engine.freq12(value)
-  elseif synth_num == 13 then engine.freq13(value)
-  elseif synth_num == 14 then engine.freq14(value)
-  elseif synth_num == 15 then engine.freq15(value)
-  elseif synth_num == 16 then engine.freq16(value)
-  end
+  engine.freq(synth_num, value)
 end
 
 function set_synth_pan(synth_num, value)
-  --set pan
-  if synth_num == 1 then engine.pan1(value)
-  elseif synth_num == 2 then engine.pan2(value)
-  elseif synth_num == 3 then engine.pan3(value)
-  elseif synth_num == 4 then engine.pan4(value)
-  elseif synth_num == 5 then engine.pan5(value)
-  elseif synth_num == 6 then engine.pan6(value)
-  elseif synth_num == 7 then engine.pan7(value)
-  elseif synth_num == 8 then engine.pan8(value)
-  elseif synth_num == 9 then engine.pan9(value)
-  elseif synth_num == 10 then engine.pan10(value)
-  elseif synth_num == 11 then engine.pan11(value)
-  elseif synth_num == 12 then engine.pan12(value)
-  elseif synth_num == 13 then engine.pan13(value)
-  elseif synth_num == 14 then engine.pan14(value)
-  elseif synth_num == 15 then engine.pan15(value)
-  elseif synth_num == 16 then engine.pan16(value)
-  end
+  engine.pan(synth_num, value)
 end
 
 function set_vol(synth_num, value)
-  if synth_num == 1 then engine.mul1(value)
-  elseif synth_num == 2 then engine.mul2(value)
-  elseif synth_num == 3 then engine.mul3(value)
-  elseif synth_num == 4 then engine.mul4(value)
-  elseif synth_num == 5 then engine.mul5(value)
-  elseif synth_num == 6 then engine.mul6(value)
-  elseif synth_num == 7 then engine.mul7(value)
-  elseif synth_num == 8 then engine.mul8(value)
-  elseif synth_num == 9 then engine.mul9(value)
-  elseif synth_num == 10 then engine.mul10(value)
-  elseif synth_num == 11 then engine.mul11(value)
-  elseif synth_num == 12 then engine.mul12(value)
-  elseif synth_num == 13 then engine.mul13(value)
-  elseif synth_num == 14 then engine.mul14(value)
-  elseif synth_num == 15 then engine.mul15(value)
-  elseif synth_num == 16 then engine.mul16(value)
-  end
+  engine.mul(synth_num, value)
 end
 
 function set_vol_from_cc(cc_num, value)
-  if cc_num == 32 then engine.mul1(value)
-  elseif cc_num == 33 then engine.mul2(value)
-  elseif cc_num == 34 then engine.mul3(value)
-  elseif cc_num == 35 then engine.mul4(value)
-  elseif cc_num == 36 then engine.mul5(value)
-  elseif cc_num == 37 then engine.mul6(value)
-  elseif cc_num == 38 then engine.mul7(value)
-  elseif cc_num == 39 then engine.mul8(value)
-  elseif cc_num == 40 then engine.mul9(value)
-  elseif cc_num == 41 then engine.mul10(value)
-  elseif cc_num == 42 then engine.mul11(value)
-  elseif cc_num == 43 then engine.mul12(value)
-  elseif cc_num == 44 then engine.mul13(value)
-  elseif cc_num == 45 then engine.mul14(value)
-  elseif cc_num == 46 then engine.mul15(value)
-  elseif cc_num == 47 then engine.mul16(value)
-  end
+  engine.mul(cc_num - 31, value)
 end
 
 function map_cc_to_slider(cc_num)
-  if cc_num == 32 then cc_num = 0
-  elseif cc_num == 33 then cc_num = 1
-  elseif cc_num == 34 then cc_num = 2
-  elseif cc_num == 35 then cc_num = 3
-  elseif cc_num == 36 then cc_num = 4
-  elseif cc_num == 37 then cc_num = 5
-  elseif cc_num == 38 then cc_num = 6
-  elseif cc_num == 39 then cc_num = 7
-  elseif cc_num == 40 then cc_num = 8
-  elseif cc_num == 41 then cc_num = 9
-  elseif cc_num == 42 then cc_num = 10
-  elseif cc_num == 43 then cc_num = 11
-  elseif cc_num == 44 then cc_num = 12
-  elseif cc_num == 45 then cc_num = 13
-  elseif cc_num == 46 then cc_num = 14
-  elseif cc_num == 47 then cc_num = 15
-  end
-  return cc_num
+  local num
+  num = cc_num - 32 
+  return num
 end
 
 m = midi.connect()
@@ -264,6 +167,9 @@ function enc(n, delta)
       --reset cents value
       current_cents = 0
       cents_values[edit+1] = 0
+      --reset octave value
+      current_octave = "0"
+      octave_values[edit+1] = "0"
       --set octave based on freq_slider
       if freq_values[edit+1] == -2 then
         set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]-24))
@@ -309,6 +215,9 @@ function enc(n, delta)
       --reset cents value
       current_cents = 0
       cents_values[edit+1] = 0
+      --reset octave value
+      current_octave = "0"
+      octave_values[edit+1] = "0"
     end
   elseif n == 3 then
     if key_3_pressed == 0 and key_2_pressed == 0 then
