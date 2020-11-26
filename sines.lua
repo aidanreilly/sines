@@ -26,7 +26,6 @@ local freq_increment = 0
 local current_freq = 0
 local current_cents = 0
 local scale_names = {}
-local unison_opts = {"yes", "no"}
 local notes = {}
 local key_2_pressed = 0
 local key_3_pressed = 0
@@ -214,54 +213,6 @@ m.event = function(data)
     if sliders[edit+1] < 0 then sliders[edit+1] = 0 end
   end
   redraw()
-end
-
-
---not used
-function keys_down()
-  if key_2_pressed == 1 and key_3_pressed == 1 then
-    print ("Reset everything to default...")
-    --set notes
-    for i = 1,16 do
-      set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
-      set_vol(i, 0)
-      set_fm_index(i, 3)
-      sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-      freq_values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-      cents_values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-      index_values = {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
-      octave_values = {"0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"}
-      current_index = 3
-      current_note = 0
-      current_cents = 0
-      current_octave = "0"
-    end
-  end
-end
-
---not used
-function set_unison()
-  if key_2_pressed == 1 and key_3_pressed == 1 then
-    local root = params:get("root_note")
-    print ("Setting unison with root note...")
-    --set notes
-    for i = 1,16 do
-      notes[i] = root
-      sliders[i] = 0
-      freq_values[i] = MusicUtil.note_num_to_freq(notes[i])
-      --set random index and detune values
-      index_values[i] = math.floor((util.clamp(math.random(), 0, 3)) * 10)
-      cents_values[i] = math.floor((util.clamp(math.random(), 0, 20) * 100) * 10 / 10)
-      current_index = index_values[i]
-      octave_values[i] = "0"
-      current_note = notes[i]
-      current_cents = cents_values[i]
-      current_octave = "0"
-      set_freq(i, freq_values[i])
-      set_vol(i, 0)
-      set_fm_index(i, index_values[i])
-    end
-  end
 end
 
 -- pan position on the bus, -1 is left, 1 is right
