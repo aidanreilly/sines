@@ -25,6 +25,7 @@ local step = 0
 local freq_increment = 0
 local current_freq = 0
 local current_cents = 0
+local cents_increment = 0
 local scale_names = {}
 local notes = {}
 local key_2_pressed = 0
@@ -164,46 +165,35 @@ function enc(n, delta)
       freq_values[edit+1] = freq_values[edit+1] + delta
       if freq_values[edit+1] > 2 then freq_values[edit+1] = 2 end
       if freq_values[edit+1] < -2 then freq_values[edit+1] = -2 end
-      --reset cents value
-      current_cents = 0
-      cents_values[edit+1] = 0
-      --reset octave value
-      current_octave = "0"
-      octave_values[edit+1] = "0"
       --set octave based on freq_slider
       if freq_values[edit+1] == -2 then
         set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]-24))
         octave_values[edit+1] = "-2" 
         current_octave = "-2"
-        --reset cents value
         current_cents = 0
         cents_values[edit+1] = 0
       elseif freq_values[edit+1] == -1 then
         set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]-12))
         octave_values[edit+1] = "-1" 
         current_octave = "-1"
-        --reset cents value
         current_cents = 0
         cents_values[edit+1] = 0
       elseif freq_values[edit+1] == 0 then
         set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]))
         octave_values[edit+1] = "0"
         current_octave = "0"
-        --reset cents value
         current_cents = 0
         cents_values[edit+1] = 0
       elseif freq_values[edit+1] == 1 then
         set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]+12))
         octave_values[edit+1] = "+1"
         current_octave = "+1"
-        --reset cents value
         current_cents = 0
         cents_values[edit+1] = 0
       elseif freq_values[edit+1] == 2 then
         set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]+24))
         octave_values[edit+1] = "+2"
         current_octave = "+2"
-        --reset cents value
         current_cents = 0
         cents_values[edit+1] = 0
       end
@@ -212,12 +202,11 @@ function enc(n, delta)
       notes[edit+1] = notes[edit+1] + util.clamp(delta, -1, 1)
       current_note = notes[edit+1]
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]))
-      --reset cents value
       current_cents = 0
       cents_values[edit+1] = 0
-      --reset octave value
-      current_octave = "0"
       octave_values[edit+1] = "0"
+      current_octave = "0"
+      cents_increment = 0
     end
   elseif n == 3 then
     if key_3_pressed == 0 and key_2_pressed == 0 then
@@ -232,11 +221,11 @@ function enc(n, delta)
       freq_increment = freq_increment + util.clamp(delta, -1, 1) * 0.1
       -- calculate increase in cents 
       -- https://music.stackexchange.com/questions/17566/how-to-calculate-the-difference-in-cents-between-a-note-and-an-arbitrary-frequen
-      local cents_increment = 3986*math.log((MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)/(MusicUtil.note_num_to_freq(notes[edit+1]))) 
+      cents_increment = 3986*math.log((MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)/(MusicUtil.note_num_to_freq(notes[edit+1]))) 
       -- round down to 2 dec points
       cents_increment = math.floor((cents_increment) * 10 / 10)
       cents_values[edit+1] = cents_increment
-      current_cents = cents_increment
+      current_cents = cents_values[edit+1]
       current_note = notes[edit+1]
       current_freq = (MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)
@@ -296,16 +285,16 @@ function redraw()
   screen.level(2)
   screen.text("Detune: ")
   screen.level(16)
-  screen.text(current_cents .. " cents")
+  screen.text(cents_values[edit+1] .. " cents")
   screen.move(0,12)
   screen.level(2)
   screen.text("Octave: ")
   screen.level(16)
-  screen.text(current_octave)
+  screen.text(octave_values[edit+1])
   screen.level(2)
   screen.text(" FM Index: ")
   screen.level(16)
-  screen.text(current_index)
+  screen.text(index_values[edit+1])
   screen.move(0,19)
   screen.level(2)
   screen.text("Pan: ")
