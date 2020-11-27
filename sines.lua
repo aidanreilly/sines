@@ -14,17 +14,12 @@ local freq_values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local cents_values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local index_values = {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
 local octave_values = {"0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"}
-local current_index = 3
-local current_note = 0
-local current_octave = "0"
 local edit = 1
 local accum = 1
 local cc_index = 3
 local cc_accum = 1
 local step = 0
 local freq_increment = 0
-local current_freq = 0
-local current_cents = 0
 local cents_increment = 0
 local scale_names = {}
 local notes = {}
@@ -67,8 +62,7 @@ function build_scale()
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
     set_vol(i, 0)
     set_fm_index(i, index_values[i])
-    octave_values[i] = "0" 
-    current_octave = "0"
+    octave_values[i] = "0"
   end  
 end
 
@@ -155,11 +149,6 @@ function enc(n, delta)
       accum = (accum + delta) % 16
       --edit is the slider number
       edit = accum
-      --set current_index and current_octave to be displayed
-      current_index = index_values[edit+1]
-      current_octave = octave_values[edit+1]
-      current_note = notes[edit+1]
-      current_cents = cents_values[edit+1]
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
       -- set the freq_slider value
       freq_values[edit+1] = freq_values[edit+1] + delta
@@ -169,43 +158,30 @@ function enc(n, delta)
       if freq_values[edit+1] == -2 then
         set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]-24))
         octave_values[edit+1] = "-2" 
-        current_octave = "-2"
-        current_cents = 0
         cents_values[edit+1] = 0
       elseif freq_values[edit+1] == -1 then
         set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]-12))
         octave_values[edit+1] = "-1" 
-        current_octave = "-1"
-        current_cents = 0
         cents_values[edit+1] = 0
       elseif freq_values[edit+1] == 0 then
         set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]))
         octave_values[edit+1] = "0"
-        current_octave = "0"
-        current_cents = 0
         cents_values[edit+1] = 0
       elseif freq_values[edit+1] == 1 then
         set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]+12))
         octave_values[edit+1] = "+1"
-        current_octave = "+1"
-        current_cents = 0
         cents_values[edit+1] = 0
       elseif freq_values[edit+1] == 2 then
         set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]+24))
         octave_values[edit+1] = "+2"
-        current_octave = "+2"
-        current_cents = 0
         cents_values[edit+1] = 0
       end
     elseif key_2_pressed == 1 and key_3_pressed == 0 then
       -- increment the note value with delta 
       notes[edit+1] = notes[edit+1] + util.clamp(delta, -1, 1)
-      current_note = notes[edit+1]
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]))
-      current_cents = 0
       cents_values[edit+1] = 0
       octave_values[edit+1] = "0"
-      current_octave = "0"
       cents_increment = 0
     end
   elseif n == 3 then
@@ -225,9 +201,6 @@ function enc(n, delta)
       -- round down to 2 dec points
       cents_increment = math.floor((cents_increment) * 10 / 10)
       cents_values[edit+1] = cents_increment
-      current_cents = cents_values[edit+1]
-      current_note = notes[edit+1]
-      current_freq = (MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
       -- set the index_slider value
@@ -235,7 +208,6 @@ function enc(n, delta)
       if index_values[edit+1] > 500 then index_values[edit+1] = 500 end
       if index_values[edit+1] < 0 then index_values[edit+1] = 0 end
       set_fm_index(edit+1, index_values[edit+1])
-      current_index = index_values[edit+1]
     end
   end
   redraw()
