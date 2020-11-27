@@ -102,9 +102,6 @@ m.event = function(data)
     set_vol_from_cc(d.cc, cc_val)
     --edit is the current slider
     edit = map_cc_to_slider(d.cc)
-    current_index = index_values[edit+1]
-    current_octave = octave_values[edit+1]
-    current_note = notes[edit+1]
     --clamp cc_val value to set gui slider
     sliders[edit+1] = cc_val*32
     if sliders[edit+1] > 32 then sliders[edit+1] = 32 end
@@ -253,7 +250,7 @@ function redraw()
   screen.level(2)
   screen.text("Note: ")  
   screen.level(16)
-  screen.text(MusicUtil.note_num_to_name(current_note,true) .. " ")
+  screen.text(MusicUtil.note_num_to_name(notes[edit+1],true) .. " ")
   screen.level(2)
   screen.text("Detune: ")
   screen.level(16)
