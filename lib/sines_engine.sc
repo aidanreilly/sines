@@ -69,7 +69,7 @@ alloc {
 		var mul;
 		var pan;
 		var params = [out, \freq, freq, \index, index, \mul, mul, \pan, pan];
-		params.postln;
+		//params.postln;
 		// this is where we supply the name of the def we made
 		Synth.new(\fm1, params, target: context.og);
 	});
