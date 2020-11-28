@@ -13,11 +13,8 @@ local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local freq_values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local cents_values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local index_values = {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
-local octave_values = {"0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"}
 local edit = 1
 local accum = 1
-local cc_index = 3
-local cc_accum = 1
 local step = 0
 local freq_increment = 0
 local cents_increment = 0
@@ -62,35 +59,28 @@ function build_scale()
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
     set_vol(i, 0)
     set_fm_index(i, index_values[i])
-    octave_values[i] = "0"
   end  
 end
 
 function set_fm_index(synth_num, value)
   --set index between 0-24 for pleasant sounds
-  engine.index(synth_num, value)
+  engine.index(synth_num - 1, value)
 end
 
 function set_freq(synth_num, value)
-  engine.freq(synth_num, value)
+  engine.freq(synth_num -1, value)
 end
 
 function set_synth_pan(synth_num, value)
-  engine.pan(synth_num, value)
+  engine.pan(synth_num - 1, value)
 end
 
 function set_vol(synth_num, value)
-  engine.mul(synth_num, value)
+  engine.mul(synth_num -1, value)
 end
 
 function set_vol_from_cc(cc_num, value)
-  engine.mul(cc_num - 31, value)
-end
-
-function map_cc_to_slider(cc_num)
-  local num
-  num = cc_num - 32 
-  return num
+  engine.mul(cc_num - 32, value)
 end
 
 m = midi.connect()
@@ -100,8 +90,8 @@ m.event = function(data)
     --clamp the cc value to acceptable range for engine sinOsc
     cc_val = util.clamp((d.val/127), 0.0, 1.0)
     set_vol_from_cc(d.cc, cc_val)
-    --edit is the current slider
-    edit = map_cc_to_slider(d.cc)
+    --edit is the current slider, map this to d.cc 
+    edit = d.cc - 32
     --clamp cc_val value to set gui slider
     sliders[edit+1] = cc_val*32
     if sliders[edit+1] > 32 then sliders[edit+1] = 32 end
@@ -151,34 +141,11 @@ function enc(n, delta)
       freq_values[edit+1] = freq_values[edit+1] + delta
       if freq_values[edit+1] > 2 then freq_values[edit+1] = 2 end
       if freq_values[edit+1] < -2 then freq_values[edit+1] = -2 end
-      --set octave based on freq_slider
-      if freq_values[edit+1] == -2 then
-        set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]-24))
-        octave_values[edit+1] = "-2" 
-        cents_values[edit+1] = 0
-      elseif freq_values[edit+1] == -1 then
-        set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]-12))
-        octave_values[edit+1] = "-1" 
-        cents_values[edit+1] = 0
-      elseif freq_values[edit+1] == 0 then
-        set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]))
-        octave_values[edit+1] = "0"
-        cents_values[edit+1] = 0
-      elseif freq_values[edit+1] == 1 then
-        set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]+12))
-        octave_values[edit+1] = "+1"
-        cents_values[edit+1] = 0
-      elseif freq_values[edit+1] == 2 then
-        set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]+24))
-        octave_values[edit+1] = "+2"
-        cents_values[edit+1] = 0
-      end
     elseif key_2_pressed == 1 and key_3_pressed == 0 then
       -- increment the note value with delta 
       notes[edit+1] = notes[edit+1] + util.clamp(delta, -1, 1)
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]))
       cents_values[edit+1] = 0
-      octave_values[edit+1] = "0"
       cents_increment = 0
     end
   elseif n == 3 then
@@ -257,9 +224,9 @@ function redraw()
   screen.text(cents_values[edit+1] .. " cents")
   screen.move(0,12)
   screen.level(2)
-  screen.text("Octave: ")
+  screen.text("Env: ")
   screen.level(16)
-  screen.text(octave_values[edit+1])
+  screen.text("loop")
   screen.level(2)
   screen.text(" FM Index: ")
   screen.level(16)
@@ -269,10 +236,6 @@ function redraw()
   screen.text("Pan: ")
   screen.level(16)
   screen.text(pan_display)
-  screen.level(2)
-  screen.text(" Env: ")
-  screen.level(16)
-  screen.text("loop")
   screen.level(2)
   screen.text(" Vol: ")
   screen.level(16)
