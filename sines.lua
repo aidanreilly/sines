@@ -147,6 +147,7 @@ function enc(n, delta)
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]))
       cents_values[edit+1] = 0
       cents_increment = 0
+      freq_increment = 0
     end
   elseif n == 3 then
     if key_3_pressed == 0 and key_2_pressed == 0 then

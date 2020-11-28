@@ -76,7 +76,7 @@ alloc {
 
 	context.server.sync;
 
-	(1..16).do({ |i|
+	(1..16).do({
 		//pan settings
 		this.addCommand(\pan, "ii", {
 			arg msg;
