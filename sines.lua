@@ -10,7 +10,6 @@
 -- K2 + K3 - set voice panning
 
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-local freq_values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local cents_values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local index_values = {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
 local edit = 1
@@ -19,6 +18,10 @@ local step = 0
 local freq_increment = 0
 local cents_increment = 0
 local scale_names = {}
+local env_types = {"evolve", "strum", "pulse", "ping", "drone" }
+local env_types_accum = 1
+local env_edit = 1 
+local env_type = "evolve"
 local notes = {}
 local key_2_pressed = 0
 local key_3_pressed = 0
@@ -131,16 +134,19 @@ function enc(n, delta)
     params:delta('output_level', delta)
 
   elseif n == 2 then
-    if key_2_pressed == 0 and key_3_pressed == 0 then 
+    if key_2_pressed == 0 and key_3_pressed == 0 then
+      --navigate up/down the list of sliders
       --accum wraps around 0-15
       accum = (accum + delta) % 16
       --edit is the slider number
       edit = accum
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
-      -- set the freq_slider value
-      freq_values[edit+1] = freq_values[edit+1] + delta
-      if freq_values[edit+1] > 2 then freq_values[edit+1] = 2 end
-      if freq_values[edit+1] < -2 then freq_values[edit+1] = -2 end
+      --change the env type
+      env_types_accum = (env_types_accum + delta) % 5
+      env_edit = env_types_accum
+      env_type = env_types[env_edit + util.clamp(delta, -1, 1)]
+      print (env_type)
+
     elseif key_2_pressed == 1 and key_3_pressed == 0 then
       -- increment the note value with delta 
       notes[edit+1] = notes[edit+1] + util.clamp(delta, -1, 1)
@@ -151,7 +157,7 @@ function enc(n, delta)
     end
   elseif n == 3 then
     if key_3_pressed == 0 and key_2_pressed == 0 then
-      --set the slider value in the gui
+      --set the slider value
       sliders[edit+1] = sliders[edit+1] + delta
       amp_value = util.clamp(((sliders[edit+1] + delta) * .026), 0.0, 1.0)
       set_vol(edit+1, amp_value)
@@ -227,7 +233,7 @@ function redraw()
   screen.level(2)
   screen.text("Env: ")
   screen.level(16)
-  screen.text("loop")
+  screen.text(env_type)
   screen.level(2)
   screen.text(" FM Index: ")
   screen.level(16)
