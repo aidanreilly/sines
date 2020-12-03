@@ -62,12 +62,18 @@ function build_scale()
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
     set_vol(i, 0)
     set_fm_index(i, index_values[i])
+    --set env stages
+    set_env_stages(i, 0.1, 3, 0.1, 3, 0.1, 3)
   end  
 end
 
 function set_fm_index(synth_num, value)
   --set index between 0-24 for pleasant sounds
   engine.index(synth_num - 1, value)
+end
+
+function set_env_stages(synth_num, env_stage1, env_stage2, env_stage3, env_stage4, env_stage5, env_stage6)
+  engine.envelope(synth_num - 1, env_stage1, env_stage2, env_stage3, env_stage4, env_stage5, env_stage6)
 end
 
 function set_freq(synth_num, value)

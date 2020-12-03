@@ -9,19 +9,15 @@ Engine_Sines : CroneEngine {
 
 alloc {
 	//https://depts.washington.edu/dxscdoc/Help/Tutorials/Mark_Polishook_tutorial/18_Frequency_modulation.html
-	SynthDef.new(\fm1, { arg out, freq = 440, carPartial = 1, modPartial = 1, index = 3, mul = 0.00, pan = 0;
+	SynthDef.new(\fm1, { arg out, freq = 440, carPartial = 1, modPartial = 1, index = 3, mul = 0.00, pan = 0, envStage1 = 0.5, envStage2 = 0.01, envStage3 = 0.3, envStage4 = 0.5, envStage5 = 0.5, envStage6 = 0.2;
 		// index values usually are between 0 and 24
 		// carPartial :: modPartial => car/mod ratio
 
 		var mod;
 		var car;
 		var sig;
-		var env_hummingbird;
-		var env_drone;
-		var env_pulse;
-		var env_ping;
-		var env_static;
 		var amp;
+		var envelope;
 
 		mod = SinOsc.ar(
 			freq * modPartial,
@@ -33,27 +29,10 @@ alloc {
 			0,
 			mul
 		);
-		//basic bitch
-		//sig = Pan2.ar(car, pan);
-
-		//looping decay env			
-		//env = Env([0, 1, 0, 0.2, 0, 0.5, 0.8, 0], [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01], releaseNode: 5, loopNode: 1);
-		//amp = EnvGen.kr(env, doneAction: Done.freeSelf);
-		//sig = Decay.ar(Impulse.ar(amp), 1.0, Pan2.ar(car, pan), 0);
-
-
-		//static
-		env_static = Env([0,1,0],[0.5,2], releaseNode: 1, loopNode: 0);
-		//hummingbird
-		env_hummingbird = Env([0, 1, 0, 0.2, 0, 0.5, 0.8, 0], [0.01, 0.02, 0.01, 0.07, 0.01, 0.01, 0.01], releaseNode: 5, loopNode: 1);
-		//pulse
-		env_pulse = Env([0, 1, 0, 0.2, 0, 0.5, 0.8, 0], [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1], releaseNode: 5, loopNode: 1);
-		//ping
-		env_ping = Env([0, 1, 0, 1, 0, 1, 0], [0.01, 0.1, 0.01, 0.1, 0.01, 0.1], releaseNode: 4, loopNode: 1);			
-		//drone
-		env_drone = Env([0, 1, 0, 0.2, 0, 0.5, 0.8, 0], [3, 5, 3, 2, 3, 1, 0.8], releaseNode: 5, loopNode: 1);
+		//multistage envelope
+		envelope = Env([0, 1, 0, 1, 0, 1, 0], [envStage1, envStage2, envStage3, envStage4, envStage5, envStage6], releaseNode: 4, loopNode: 1);			
 		//amp and out
-		amp = EnvGen.kr(env_pulse, doneAction: Done.freeSelf);
+		amp = EnvGen.kr(envelope, doneAction: Done.freeSelf);
 		sig = Pan2.ar(car * amp, pan);			
 
 		//SHITTY BOUNCING BALL
@@ -68,7 +47,13 @@ alloc {
 		var index;
 		var mul;
 		var pan;
-		var params = [out, \freq, freq, \index, index, \mul, mul, \pan, pan];
+		var envStage1; 
+		var envStage2; 
+		var envStage3;
+		var envStage4;
+		var envStage5;
+		var envStage6;
+		var params = [out, \freq, freq, \index, index, \mul, mul, \pan, pan, \envStage1, envStage1, \envStage2, envStage2, \envStage3, envStage3, \envStage4, envStage4, \envStage5, envStage5, \envStage6, envStage6];
 		//params.postln;
 		// this is where we supply the name of the def we made
 		Synth.new(\fm1, params, target: context.og);
@@ -96,6 +81,16 @@ alloc {
 		this.addCommand(\freq, "ii", { 
 			arg msg;
 			synths[msg[1]].set(\freq, msg[2]);
+		});
+		//envelope settings
+		this.addCommand(\envelope, "iiiiiii", { 
+			arg msg;
+			synths[msg[1]].set(\envStage1, msg[2]);
+			synths[msg[1]].set(\envStage2, msg[3]);
+			synths[msg[1]].set(\envStage3, msg[4]);
+			synths[msg[1]].set(\envStage4, msg[5]);
+			synths[msg[1]].set(\envStage5, msg[6]);
+			synths[msg[1]].set(\envStage6, msg[7]);
 		});
 	});
 
