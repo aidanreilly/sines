@@ -62,8 +62,8 @@ function build_scale()
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
     set_vol(i, 0)
     set_fm_index(i, index_values[i])
-    --set env stages
-    set_env_stages(i, 0.1, 3, 0.1, 3, 0.1, 3)
+    --set looping env
+    set_env(i, 0.1, 0.2)
   end  
 end
 
@@ -72,8 +72,8 @@ function set_fm_index(synth_num, value)
   engine.index(synth_num - 1, value)
 end
 
-function set_env_stages(synth_num, env_stage1, env_stage2, env_stage3, env_stage4, env_stage5, env_stage6)
-  engine.envelope(synth_num - 1, env_stage1, env_stage2, env_stage3, env_stage4, env_stage5, env_stage6)
+function set_env(synth_num, attack, decay, curve)
+  engine.envelope(synth_num - 1, attack, decay)
 end
 
 function set_freq(synth_num, value)
