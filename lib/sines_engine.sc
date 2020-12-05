@@ -30,7 +30,7 @@ alloc {
 			mul
 		);
 		//Looping AD envelope
-		envelope = Env([0, 1, 0, 1], [0.1, attackTime, decayTime], releaseNode: 2, loopNode: 0);			
+		envelope = Env([0, 1, 0, 1], [attackTime, decayTime, 0.1], releaseNode: 2, loopNode: 0);			
 		//amp and out
 		amp = EnvGen.kr(envelope, doneAction: Done.freeSelf);
 		sig = Pan2.ar(car * amp, pan);			
