@@ -12,16 +12,16 @@
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local cents_values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local index_values = {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
+local env_values = {0.01, 0.03, 0.08, 0.1, 0.2, 0.3, 0.8, 1, 2, 5, 6, 7, 8, 10, 15, 30}
+local voice_env_values = {0.01, 0.03, 0.08, 0.1, 0.2, 0.3, 0.8, 1, 2, 5, 6, 7, 8, 10, 15, 30}
 local edit = 1
+local env_edit = 1
 local accum = 1
+local env_accum = 1
 local step = 0
 local freq_increment = 0
 local cents_increment = 0
 local scale_names = {}
-local env_types = {"evolve", "strum", "pulse", "ping", "drone" }
-local env_types_accum = 1
-local env_edit = 1 
-local env_type = "evolve"
 local notes = {}
 local key_2_pressed = 0
 local key_3_pressed = 0
@@ -63,7 +63,7 @@ function build_scale()
     set_vol(i, 0)
     set_fm_index(i, index_values[i])
     --set looping env
-    set_env(i, 0.1, 0.2)
+    set_env(i, env_values[i], env_values[i])
   end  
 end
 
@@ -72,7 +72,7 @@ function set_fm_index(synth_num, value)
   engine.index(synth_num - 1, value)
 end
 
-function set_env(synth_num, attack, decay, curve)
+function set_env(synth_num, attack, decay)
   engine.envelope(synth_num - 1, attack, decay)
 end
 
@@ -147,12 +147,13 @@ function enc(n, delta)
       --edit is the slider number
       edit = accum
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
-      --change the env type
-      env_types_accum = (env_types_accum + delta) % 5
-      env_edit = env_types_accum
-      env_type = env_types[env_edit + util.clamp(delta, -1, 1)]
-      print (env_type)
-
+      env_accum = (env_accum + delta) % 16
+      --env_edit is the env_values selector
+      env_edit = env_accum
+      --change the AD env values
+      print (env_accum)
+      voice_env_values[edit+1] = env_values[env_accum]
+      set_env(edit+1, voice_env_values[env_accum], voice_env_values[env_accum])
     elseif key_2_pressed == 1 and key_3_pressed == 0 then
       -- increment the note value with delta 
       notes[edit+1] = notes[edit+1] + util.clamp(delta, -1, 1)
@@ -239,9 +240,9 @@ function redraw()
   screen.level(2)
   screen.text("Env: ")
   screen.level(15)
-  screen.text(env_type)
+  screen.text(voice_env_values[edit+1]*2 .. " s")
   screen.level(2)
-  screen.text(" FM Index: ")
+  screen.text(" FM Ind: ")
   screen.level(15)
   screen.text(index_values[edit+1])
   screen.move(0,19)
