@@ -62,8 +62,16 @@ function build_scale()
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
     set_vol(i, 0)
     set_fm_index(i, index_values[i])
-    --set looping env
-    set_env(i, env_values[i], env_values[i])
+    --set looping env values
+    for i = 1,16 do
+      if i % 2 == 0 then
+        --even
+        set_env(i, 0.1, 3)
+      elseif i % 2 == 1 then
+        --odd        
+        set_env(i, 0.1, 6)
+        end
+      end
   end  
 end
 
@@ -151,7 +159,6 @@ function enc(n, delta)
       --env_edit is the env_values selector
       env_edit = env_accum
       --change the AD env values
-      print (env_accum)
       voice_env_values[edit+1] = env_values[env_accum]
       set_env(edit+1, voice_env_values[env_accum], voice_env_values[env_accum])
     elseif key_2_pressed == 1 and key_3_pressed == 0 then
