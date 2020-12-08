@@ -9,7 +9,7 @@ Engine_Sines : CroneEngine {
 
 alloc {
 	//https://depts.washington.edu/dxscdoc/Help/Tutorials/Mark_Polishook_tutorial/18_Frequency_modulation.html
-	SynthDef.new(\fm1, { arg out, freq = 440, carPartial = 1, modPartial = 1, index = 3, mul = 0.00, pan = 0, attackTime = 0.01, decayTime = 0.1;
+	SynthDef.new(\fm1, { arg out, freq = 440, carPartial = 1, modPartial = 1, index = 3, mul = 0.00, pan = 0, begin = 0, middle = 1, end = 0, attackTime = 0.01, decayTime = 0.1;
 		// index values usually are between 0 and 24
 		// carPartial :: modPartial => car/mod ratio
 
@@ -30,7 +30,7 @@ alloc {
 			mul
 		);
 		//Looping AD envelope
-		envelope = Env([0, 1, 0, 1], [attackTime, decayTime, 0.1], releaseNode: 2, loopNode: 0);			
+		envelope = Env([0, begin, middle, end], [attackTime, decayTime, 0.1], releaseNode: 2, loopNode: 0);			
 		//amp and out
 		amp = EnvGen.kr(envelope, doneAction: Done.freeSelf);
 		sig = Pan2.ar(car * amp, pan);			
@@ -46,8 +46,11 @@ alloc {
 		var mul;
 		var pan;
 		var attackTime; 
-		var decayTime; 
-		var params = [out, \freq, freq, \index, index, \mul, mul, \pan, pan, \attackTime, attackTime, \decayTime, decayTime];
+		var decayTime;
+		var begin;
+		var middle;
+		var end; 
+		var params = [out, \freq, freq, \index, index, \mul, mul, \pan, pan, \begin, begin, \middle, middle, \end, end, \attackTime, attackTime, \decayTime, decayTime];
 		//params.postln;
 		// this is where we supply the name of the def we made
 		Synth.new(\fm1, params, target: context.og);
@@ -77,10 +80,13 @@ alloc {
 			synths[msg[1]].set(\freq, msg[2]);
 		});
 		//envelope settings
-		this.addCommand(\envelope, "iii", { 
+		this.addCommand(\envelope, "iiiiii", { 
 			arg msg;
-			synths[msg[1]].set(\attackTime, msg[2]);
-			synths[msg[1]].set(\decayTime, msg[3]);
+			synths[msg[1]].set(\begin, msg[2]);
+			synths[msg[1]].set(\middle, msg[3]);
+			synths[msg[1]].set(\end, msg[4]);
+			synths[msg[1]].set(\attackTime, msg[5]);
+			synths[msg[1]].set(\decayTime, msg[6]);
 		});
 	});
 

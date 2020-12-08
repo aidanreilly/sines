@@ -12,8 +12,24 @@
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local cents_values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local index_values = {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
-local env_values = {0.01, 0.03, 0.08, 0.1, 0.2, 0.3, 0.8, 1, 2, 5, 6, 7, 8, 10, 15, 30}
-local voice_env_values = {0.01, 0.03, 0.08, 0.1, 0.2, 0.3, 0.8, 1, 2, 5, 6, 7, 8, 10, 15, 30}
+
+local env_types = {"drone", "ping1", "ping2", "ping3", "pulse1", "pulse2", "pulse3", "evolve1", "evolve2", "evolve3"}
+local env_names = {"drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone"}
+--set begin_level, middle_level, end_level, attack_time, decay_time
+local envs = {{"drone", 1, 1, 1, 1, 1},
+            {"ping1", 0, 1, 0, 0.01, 0.01},
+            {"ping2", 0, 1, 0, 1, 1},
+            {"ping3", 0, 1, 0, 1, 1},
+            {"pulse1", 0, 1, 0, 1, 1},
+            {"pulse2", 0, 1, 0, 1, 1},
+            {"pulse3", 0, 1, 0, 1, 1},
+            {"evolve1", 0, 1, 0, 1, 1},
+            {"evolve2", 0, 1, 0, 1, 1},
+            {"evolve3", 0, 1, 0, 1, 1}
+          }
+
+--local attack_values = {1, 0.01, 0.03, 0.08, 0.1, 0.2, 0.3, 0.8, 1, 2, 5, 6, 7, 8, 10, 15, 30}
+--local decay_values = {1, 0.1, 0.3, 0.8, 1, 2, 3, 0.8, 1, 2, 5, 6, 7, 8, 10, 15, 30}
 local edit = 1
 local env_edit = 1
 local accum = 1
@@ -66,10 +82,10 @@ function build_scale()
     for i = 1,16 do
       if i % 2 == 0 then
         --even
-        set_env(i, 0.1, 3)
+        set_env(i, "drone")
       elseif i % 2 == 1 then
         --odd        
-        set_env(i, 0.1, 6)
+        set_env(i, "ping1")
         end
       end
   end  
@@ -80,8 +96,15 @@ function set_fm_index(synth_num, value)
   engine.index(synth_num - 1, value)
 end
 
-function set_env(synth_num, attack, decay)
-  engine.envelope(synth_num - 1, attack, decay)
+function set_env(synth_num, env_name)
+  --for drone, set begin, middle, end to 1
+  --for regular AD envelope, set begin, middle, end to 0,1,0
+  --set begin_level, middle_level, end_level, attack_time, decay_time
+  for i = 1,10 do
+    if envs[i][1] == env_name then
+      engine.envelope(synth_num - 1, envs[i][2], envs[i][3], envs[i][4], envs[i][5], envs[i][6])
+    end
+  end
 end
 
 function set_freq(synth_num, value)
@@ -155,15 +178,14 @@ function enc(n, delta)
       --edit is the slider number
       edit = accum
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
-      env_accum = (env_accum + delta) % 16
-      --env_edit is the env_values selector
+      env_accum = (env_accum + delta) % 10
+      --env_edit is the env_names selector
       env_edit = env_accum
       --change the AD env values
-      voice_env_values[edit+1] = env_values[env_accum]
-      set_env(edit+1, voice_env_values[env_accum], voice_env_values[env_accum])
-    elseif key_2_pressed == 1 and key_3_pressed == 0 then
-      -- increment the note value with delta 
-      notes[edit+1] = notes[edit+1] + util.clamp(delta, -1, 1)
+      env_names[edit+1] = env_types[env_accum]
+      --set the env
+      set_env(edit+1, env_names[edit+1])     
+      --why is this here? copy/pasta typo?
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]))
       cents_values[edit+1] = 0
       cents_increment = 0
@@ -247,7 +269,7 @@ function redraw()
   screen.level(2)
   screen.text("Env: ")
   screen.level(15)
-  screen.text(voice_env_values[edit+1]*2 .. " s")
+  screen.text(env_names[edit+1])
   screen.level(2)
   screen.text(" FM Ind: ")
   screen.level(15)
