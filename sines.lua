@@ -1,35 +1,32 @@
---- ~ Sines v0.1 by @oootini ~
+--- ~ Sines v0.1 ~
 -- E1 - overall volume
 -- E2 - select sine 1-16
 -- E3 - set sine amplitude
--- K1 - exit to norns main menu
 -- K2 + E2 - change note
 -- K2 + E3 - detune
--- K3 + E2 - change octave
+-- K3 + E2 - change envelope
 -- K3 + E3 -  change FM index
 -- K2 + K3 - set voice panning
 
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local cents_values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local index_values = {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
-
-local env_types = {"drone", "ping1", "ping2", "ping3", "pulse1", "pulse2", "pulse3", "evolve1", "evolve2", "evolve3"}
-local env_names = {"drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone"}
---set begin_level, middle_level, end_level, attack_time, decay_time
+local env_types = {"drone", "ping1", "ping2", "ping3", "pulse1", "pulse2", "pulse3", "ramp1", "ramp2", "ramp3", "evolve1", "evolve2", "evolve3"}
+local env_values = {"drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone"}
 local envs = {{"drone", 1, 1, 1, 1, 1},
-            {"ping1", 0, 1, 0, 0.01, 0.01},
-            {"ping2", 0, 1, 0, 1, 1},
-            {"ping3", 0, 1, 0, 1, 1},
-            {"pulse1", 0, 1, 0, 1, 1},
-            {"pulse2", 0, 1, 0, 1, 1},
-            {"pulse3", 0, 1, 0, 1, 1},
-            {"evolve1", 0, 1, 0, 1, 1},
-            {"evolve2", 0, 1, 0, 1, 1},
-            {"evolve3", 0, 1, 0, 1, 1}
-          }
-
---local attack_values = {1, 0.01, 0.03, 0.08, 0.1, 0.2, 0.3, 0.8, 1, 2, 5, 6, 7, 8, 10, 15, 30}
---local decay_values = {1, 0.1, 0.3, 0.8, 1, 2, 3, 0.8, 1, 2, 5, 6, 7, 8, 10, 15, 30}
+{"ping1", 0, 1, 0, 0.01, 0.01},
+{"ping2", 0, 1, 0, 0.01, 0.1},
+{"ping3", 0, 1, 0, 0.01, 0.5},
+{"pulse1", 0, 1, 0, 0.1, 0.5},
+{"pulse2", 0, 1, 0, 0.1, 0.8},
+{"pulse3", 0, 1, 0, 1, 0.01},
+{"ramp1", 0, 1, 0, 1.5, 0.01},
+{"ramp2", 0, 1, 0, 2, 0.01},
+{"ramp3", 0, 1, 0, 0.1, 1},
+{"evolve1", 0, 1, 0, 10, 11},
+{"evolve2", 0, 1, 0, 15, 15},
+{"evolve3", 0, 1, 0, 20, 10}
+}
 local edit = 1
 local env_edit = 1
 local accum = 1
@@ -50,6 +47,7 @@ MusicUtil = require "musicutil"
 function init()
   print("loaded Sines engine")
   add_params()
+  set_voices()
 end
 
 function add_params()
@@ -58,10 +56,10 @@ function add_params()
   end
   params:add{type = "option", id = "scale_mode", name = "scale mode",
     options = scale_names, default = 5,
-    action = function() build_scale() end}
+  action = function() build_scale() end}
   params:add{type = "number", id = "root_note", name = "root note",
     min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
-    action = function() build_scale() end}
+  action = function() build_scale() end}
   params:default()
 end
 
@@ -71,7 +69,13 @@ function build_scale()
   for i = 1, num_to_add do
     table.insert(notes, notes[16 - num_to_add])
   end
-  --set notes
+  for i = 1,16 do
+    --also set notes
+    set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
+  end
+end
+
+function set_voices()
   for i = 1,16 do
     index_values[i] = 3
     cents_values[i] = 0
@@ -85,10 +89,10 @@ function build_scale()
         set_env(i, "drone")
       elseif i % 2 == 1 then
         --odd        
-        set_env(i, "ping1")
-        end
+        set_env(i, "drone")
       end
-  end  
+    end
+  end
 end
 
 function set_fm_index(synth_num, value)
@@ -97,10 +101,8 @@ function set_fm_index(synth_num, value)
 end
 
 function set_env(synth_num, env_name)
-  --for drone, set begin, middle, end to 1
-  --for regular AD envelope, set begin, middle, end to 0,1,0
-  --set begin_level, middle_level, end_level, attack_time, decay_time
-  for i = 1,10 do
+  --goofy way to loop through the envs list, but whetever
+  for i = 1,13 do
     if envs[i][1] == env_name then
       engine.envelope(synth_num - 1, envs[i][2], envs[i][3], envs[i][4], envs[i][5], envs[i][6])
     end
@@ -125,23 +127,23 @@ end
 
 m = midi.connect()
 m.event = function(data)
-  local d = midi.to_msg(data)
-  if d.type == "cc" then
-    --clamp the cc value to acceptable range for engine sinOsc
-    cc_val = util.clamp((d.val/127), 0.0, 1.0)
-    set_vol_from_cc(d.cc, cc_val)
-    --edit is the current slider, map this to d.cc 
-    edit = d.cc - 32
-    --clamp cc_val value to set gui slider
-    sliders[edit+1] = cc_val*32
-    if sliders[edit+1] > 32 then sliders[edit+1] = 32 end
-    if sliders[edit+1] < 0 then sliders[edit+1] = 0 end
-  end
-  redraw()
+local d = midi.to_msg(data)
+if d.type == "cc" then
+  --clamp the cc value to acceptable range for engine sinOsc
+  cc_val = util.clamp((d.val/127), 0.0, 1.0)
+  set_vol_from_cc(d.cc, cc_val)
+  --edit is the current slider, map this to d.cc 
+  edit = d.cc - 32
+  --clamp cc_val value to set gui slider
+  sliders[edit+1] = cc_val*32
+  if sliders[edit+1] > 32 then sliders[edit+1] = 32 end
+  if sliders[edit+1] < 0 then sliders[edit+1] = 0 end
+end
+redraw()
 end
 
--- pan position on the bus, -1 is left, 1 is right
 function set_pan()
+  -- pan position on the bus, -1 is left, 1 is right
   if key_2_pressed == 1 and key_3_pressed == 1 then
     toggle = not toggle
     if toggle then
@@ -178,19 +180,22 @@ function enc(n, delta)
       --edit is the slider number
       edit = accum
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
-      env_accum = (env_accum + delta) % 10
-      --env_edit is the env_names selector
+      env_accum = (env_accum + delta) % 13
+      --env_edit is the env_values selector
       env_edit = env_accum
       --change the AD env values
-      env_names[edit+1] = env_types[env_accum]
+      env_values[edit+1] = env_types[env_accum]
       --set the env
-      set_env(edit+1, env_names[edit+1])     
-      --why is this here? copy/pasta typo?
-      set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]))
+      set_env(edit+1, env_values[edit+1])
+    elseif key_2_pressed == 1 and key_3_pressed == 0 then
+      -- increment the note value with delta 
+      notes[edit+1] = notes[edit+1] + util.clamp(delta, -1, 1)
+      set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]))      
       cents_values[edit+1] = 0
       cents_increment = 0
       freq_increment = 0
     end
+
   elseif n == 3 then
     if key_3_pressed == 0 and key_2_pressed == 0 then
       --set the slider value
@@ -269,7 +274,7 @@ function redraw()
   screen.level(2)
   screen.text("Env: ")
   screen.level(15)
-  screen.text(env_names[edit+1])
+  screen.text(env_values[edit+1])
   screen.level(2)
   screen.text(" FM Ind: ")
   screen.level(15)
