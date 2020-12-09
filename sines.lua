@@ -48,6 +48,7 @@ function init()
   print("loaded Sines engine")
   add_params()
   set_voices()
+  params:read()
 end
 
 function add_params()
@@ -86,10 +87,10 @@ function set_voices()
     for i = 1,16 do
       if i % 2 == 0 then
         --even
-        set_env(i, "drone")
+        set_env(i, "evolve2")
       elseif i % 2 == 1 then
         --odd        
-        set_env(i, "drone")
+        set_env(i, "evolve3")
       end
     end
   end

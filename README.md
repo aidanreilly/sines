@@ -4,7 +4,7 @@ A simple FM sine drone synth with 16 independant sine waves. Each sine wave is F
 
 Control sine amplitudes with norns or a midi controller (hardcoded for 16n midi cc's).
 
-![16sines](16s.png)
+![sines](sines.png)
 
 ## Installation
 
@@ -27,7 +27,7 @@ Controls:
 * [K1] exit to norns main menu
 * [K2] + [E2] change note
 * [K2] + [E3] detune
-* [K3] + [E2] change octave
+* [K3] + [E2] change envelope
 * [K3] + [E3] change FM index
 * [K2] + [K3] set voice pannning. 'm' centers all voices in the stereo field, 'l/r' pans odd numbered voices hard left, and even numbered voices hard right. 
 
