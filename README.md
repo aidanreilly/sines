@@ -10,7 +10,7 @@ Control sine amplitudes with norns or a midi controller (hardcoded for 16n midi 
 
 Ensure you are up to date with the latest norns OS.
 
-To install sines, visit norns.local in a browser, and enter the following in the maiden REPL:
+To install sines, visit http://norns.local/ in a browser, and enter the following in the maiden REPL:
 
 	norns.fetch("https://github.com/aidanreilly/sines")
 
