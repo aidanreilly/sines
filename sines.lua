@@ -9,24 +9,27 @@
 -- K2 + K3 - set voice panning
 
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-local cents_values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-local index_values = {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
-local env_types = {"drone", "ping1", "ping2", "ping3", "pulse1", "pulse2", "pulse3", "ramp1", "ramp2", "ramp3", "evolve1", "evolve2", "evolve3"}
-local env_values = {"drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone", "drone"}
+local cents_values = {}
+local index_values = {}
+local env_types = {"drone", "ping1", "ping2", "ping3", "pulse1", "pulse2", "pulse3", "pulse4", "ramp1", "ramp2", "ramp3", "ramp4", "evolve1", "evolve2", "evolve3", "evolve4"}
 local envs = {{"drone", 1, 1, 1, 1, 1},
-{"ping1", 0, 1, 0, 0.01, 0.01},
-{"ping2", 0, 1, 0, 0.01, 0.1},
+{"ping1", 0, 1, 0, 0.01, 0.1},
+{"ping2", 0, 1, 0, 0.01, 0.2},
 {"ping3", 0, 1, 0, 0.01, 0.5},
 {"pulse1", 0, 1, 0, 0.1, 0.5},
 {"pulse2", 0, 1, 0, 0.1, 0.8},
-{"pulse3", 0, 1, 0, 1, 0.01},
+{"pulse3", 0, 1, 0, 0.1, 0.1},
+{"pulse4", 0, 1, 0, 0.1, 0.2},
 {"ramp1", 0, 1, 0, 1.5, 0.01},
 {"ramp2", 0, 1, 0, 2, 0.01},
-{"ramp3", 0, 1, 0, 0.1, 1},
+{"ramp3", 0, 1, 0, 3, 0.01},
+{"ramp4", 0, 1, 0, 4, 0.01},
 {"evolve1", 0, 1, 0, 10, 11},
-{"evolve2", 0, 1, 0, 15, 15},
-{"evolve3", 0, 1, 0, 20, 10}
+{"evolve2", 0, 1, 0, 15, 10},
+{"evolve3", 0, 1, 0, 20, 10},
+{"evolve4", 0, 1, 0, 25, 15}
 }
+local env_values = {}
 local edit = 1
 local env_edit = 1
 local accum = 1
@@ -48,6 +51,7 @@ function init()
   print("loaded Sines engine")
   add_params()
   set_voices()
+  --get the last used pset
   params:read()
 end
 
@@ -80,19 +84,11 @@ function set_voices()
   for i = 1,16 do
     index_values[i] = 3
     cents_values[i] = 0
+    env_values[i] = "drone"
+    set_env(i, "drone")
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
     set_vol(i, 0)
     set_fm_index(i, index_values[i])
-    --set looping env values
-    for i = 1,16 do
-      if i % 2 == 0 then
-        --even
-        set_env(i, "evolve2")
-      elseif i % 2 == 1 then
-        --odd        
-        set_env(i, "evolve3")
-      end
-    end
   end
 end
 
@@ -181,11 +177,11 @@ function enc(n, delta)
       --edit is the slider number
       edit = accum
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
-      env_accum = (env_accum + delta) % 13
+      env_accum = (env_accum + delta) % 16
       --env_edit is the env_values selector
       env_edit = env_accum
       --change the AD env values
-      env_values[edit+1] = env_types[env_accum]
+      env_values[edit+1] = env_types[env_edit+1]  
       --set the env
       set_env(edit+1, env_values[edit+1])
     elseif key_2_pressed == 1 and key_3_pressed == 0 then
