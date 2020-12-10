@@ -8,12 +8,13 @@ Control sine amplitudes with norns or a midi controller (hardcoded for 16n midi 
 
 ## Installation
 
-To install, ssh into norns:  
+Ensure you are up to date with the latest norns OS.
 
-	$ cd dust/code
-	$ git clone https://github.com/aidanreilly/sines.git
+To install sines, visit norns.local in a browser, and enter the following in the maiden REPL:
 
-Then, `SYSTEM => RESET` to pick up the new SuperCollider engine.
+	norns.fetch("https://github.com/aidanreilly/sines")
+
+Then, `SYSTEM => RESET` on norns to pick up the new SuperCollider engine.
 
 ## Play
 
