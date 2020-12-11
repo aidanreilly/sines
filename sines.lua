@@ -11,15 +11,15 @@
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local cents_values = {}
 local index_values = {}
-local env_types = {"drone", "ping1", "ping2", "ping3", "pulse1", "pulse2", "pulse3", "pulse4", "ramp1", "ramp2", "ramp3", "ramp4", "evolve1", "evolve2", "evolve3", "evolve4"}
+local env_types = {"drone", "am1", "am2", "am3", "pulse1", "pulse2", "pulse3", "pulse4", "ramp1", "ramp2", "ramp3", "ramp4", "evolve1", "evolve2", "evolve3", "evolve4"}
 local envs = {{"drone", 1, 1, 1, 1, 1},
-{"ping1", 0, 1, 0, 0.01, 0.1},
-{"ping2", 0, 1, 0, 0.01, 0.2},
-{"ping3", 0, 1, 0, 0.01, 0.5},
-{"pulse1", 0, 1, 0, 0.1, 0.5},
-{"pulse2", 0, 1, 0, 0.1, 0.8},
-{"pulse3", 0, 1, 0, 0.1, 0.1},
-{"pulse4", 0, 1, 0, 0.1, 0.2},
+{"am1", 0, 1, 0, 0.01, 0.1},
+{"am2", 0, 1, 0, 0.01, 0.2},
+{"am3", 0, 1, 0, 0.01, 0.5},
+{"pulse1", 0, 1, 0, 0.01, },
+{"pulse2", 0, 1, 0, 0.1, 1},
+{"pulse3", 0, 1, 0, 0.1, 1.5},
+{"pulse4", 0, 1, 0, 0.1, 2},
 {"ramp1", 0, 1, 0, 1.5, 0.01},
 {"ramp2", 0, 1, 0, 2, 0.01},
 {"ramp3", 0, 1, 0, 3, 0.01},
