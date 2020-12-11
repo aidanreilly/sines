@@ -5,7 +5,7 @@
 -- K2 + E2 - change note
 -- K2 + E3 - detune
 -- K3 + E2 - change envelope
--- K3 + E3 -  change FM index
+-- K3 + E3 - change FM index
 -- K2 + K3 - set voice panning
 
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
