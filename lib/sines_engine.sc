@@ -94,6 +94,7 @@ alloc {
 
 //free the synths
 free {
+	synths[0].free;
 	synths[1].free;
 	synths[2].free;
 	synths[3].free;
@@ -109,7 +110,6 @@ free {
 	synths[13].free;
 	synths[14].free;
 	synths[15].free;
-	synths[16].free;
 }
 
 }
