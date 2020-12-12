@@ -33,7 +33,7 @@ alloc {
 		envelope = Env([0, begin, middle, end], [attackTime, decayTime, 0.1], releaseNode: 2, loopNode: 0);			
 		//amp and out
 		amp = EnvGen.kr(envelope, doneAction: Done.freeSelf);
-		sig = Pan2.ar(car * amp, pan);			
+		sig = Pan2.ar(car * amp, pan, 1);			
 
 		Out.ar(out, sig)			
 	}).add;
