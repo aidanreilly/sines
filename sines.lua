@@ -1,4 +1,4 @@
---- ~ Sines v0.1 ~
+--- ~ Sines v0.2 ~
 -- E1 - overall volume
 -- E2 - select sine 1-16
 -- E3 - set sine amplitude
@@ -150,17 +150,17 @@ function set_pan()
       for i = 1,16 do
         if i % 2 == 0 then
           --even, pan right
-          set_synth_pan(i,1)
+          set_synth_pan(i,1.0)
         elseif i % 2 == 1 then
           --odd, pan left        
-          set_synth_pan(i,-1)
+          set_synth_pan(i,-1.0)
         end
       end
     end
     if not toggle then
       pan_display = "m"
       for i = 1,16 do
-        set_synth_pan(i,0)
+        set_synth_pan(i,0.0)
       end
     end
   end

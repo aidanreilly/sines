@@ -9,7 +9,7 @@ Engine_Sines : CroneEngine {
 
 alloc {
 	//https://depts.washington.edu/dxscdoc/Help/Tutorials/Mark_Polishook_tutorial/18_Frequency_modulation.html
-	SynthDef.new(\fm1, { arg out, freq = 440, carPartial = 1, modPartial = 1, index = 3, mul = 0.00, pan = 0, begin = 0, middle = 1, end = 0, attackTime = 0.01, decayTime = 0.1;
+	SynthDef.new(\fm1, { arg out, freq = 440, carPartial = 1, modPartial = 1, index = 3, mul = 0.00, pan = 0.0, begin = 0, middle = 1, end = 0, attackTime = 0.01, decayTime = 0.1;
 		// index values usually are between 0 and 24
 		// carPartial :: modPartial => car/mod ratio
 
