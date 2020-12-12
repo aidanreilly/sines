@@ -58,36 +58,34 @@ alloc {
 
 	context.server.sync;
 
-	(1..16).do({
-		//pan settings
-		this.addCommand(\pan, "ii", {
-			arg msg;
-			synths[msg[1]].set(\pan, msg[2]);
-		});
-		//index settings
-		this.addCommand(\index, "ii", {
-			arg msg;
-			synths[msg[1]].set(\index, msg[2]);
-		});
-		//amp settings
-		this.addCommand(\mul, "if", {
-			arg msg;
-			synths[msg[1]].set(\mul, msg[2]);
-		});
-		//freq settings
-		this.addCommand(\freq, "ii", { 
-			arg msg;
-			synths[msg[1]].set(\freq, msg[2]);
-		});
-		//envelope settings
-		this.addCommand(\envelope, "iiiiii", { 
-			arg msg;
-			synths[msg[1]].set(\begin, msg[2]);
-			synths[msg[1]].set(\middle, msg[3]);
-			synths[msg[1]].set(\end, msg[4]);
-			synths[msg[1]].set(\attackTime, msg[5]);
-			synths[msg[1]].set(\decayTime, msg[6]);
-		});
+	//pan settings
+	this.addCommand(\pan, "ii", {
+		arg msg;
+		synths[msg[1]].set(\pan, msg[2]);
+	});
+	//index settings
+	this.addCommand(\index, "ii", {
+		arg msg;
+		synths[msg[1]].set(\index, msg[2]);
+	});
+	//amp settings
+	this.addCommand(\mul, "if", {
+		arg msg;
+		synths[msg[1]].set(\mul, msg[2]);
+	});
+	//freq settings
+	this.addCommand(\freq, "ii", { 
+		arg msg;
+		synths[msg[1]].set(\freq, msg[2]);
+	});
+	//envelope settings
+	this.addCommand(\envelope, "iiiiii", { 
+		arg msg;
+		synths[msg[1]].set(\begin, msg[2]);
+		synths[msg[1]].set(\middle, msg[3]);
+		synths[msg[1]].set(\end, msg[4]);
+		synths[msg[1]].set(\attackTime, msg[5]);
+		synths[msg[1]].set(\decayTime, msg[6]);
 	});
 
 }
