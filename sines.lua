@@ -50,6 +50,7 @@ MusicUtil = require "musicutil"
 function init()
   print("loaded Sines engine")
   add_params()
+  params:default()
   set_voices()
   --get the last used pset
   params:read()
