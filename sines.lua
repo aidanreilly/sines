@@ -95,32 +95,32 @@ end
 
 function set_fm_index(synth_num, value)
   --set index between 0-24 for pleasant sounds
-  engine.index(synth_num - 1, value)
+  engine.fm_index(synth_num - 1, value)
 end
 
 function set_env(synth_num, env_name)
   --goofy way to loop through the envs list, but whetever
   for i = 1,13 do
     if envs[i][1] == env_name then
-      engine.envelope(synth_num - 1, envs[i][2], envs[i][3], envs[i][4], envs[i][5], envs[i][6])
+      engine.sine_env(synth_num - 1, envs[i][2], envs[i][3], envs[i][4], envs[i][5], envs[i][6])
     end
   end
 end
 
 function set_freq(synth_num, value)
-  engine.freq(synth_num -1, value)
+  engine.sine_freq(synth_num -1, value)
 end
 
 function set_synth_pan(synth_num, value)
-  engine.pan(synth_num - 1, value)
+  engine.sine_pan(synth_num - 1, value)
 end
 
 function set_vol(synth_num, value)
-  engine.mul(synth_num -1, value)
+  engine.fm_mul(synth_num -1, value)
 end
 
 function set_vol_from_cc(cc_num, value)
-  engine.mul(cc_num - 32, value)
+  engine.fm_mul(cc_num - 32, value)
 end
 
 m = midi.connect()
