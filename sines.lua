@@ -102,7 +102,7 @@ function set_env(synth_num, env_name)
   --goofy way to loop through the envs list, but whetever
   for i = 1,13 do
     if envs[i][1] == env_name then
-      engine.sine_env(synth_num - 1, envs[i][2], envs[i][3], envs[i][4], envs[i][5], envs[i][6])
+      engine.env(synth_num - 1, envs[i][2], envs[i][3], envs[i][4], envs[i][5], envs[i][6])
     end
   end
 end
@@ -150,17 +150,17 @@ function set_pan()
       for i = 1,16 do
         if i % 2 == 0 then
           --even, pan right
-          set_synth_pan(i,1.0)
+          set_synth_pan(i,1)
         elseif i % 2 == 1 then
           --odd, pan left        
-          set_synth_pan(i,-1.0)
+          set_synth_pan(i,-1)
         end
       end
     end
     if not toggle then
       pan_display = "m"
       for i = 1,16 do
-        set_synth_pan(i,0.0)
+        set_synth_pan(i,0)
       end
     end
   end

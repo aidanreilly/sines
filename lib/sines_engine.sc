@@ -9,7 +9,7 @@ Engine_Sines : CroneEngine {
 
 alloc {
 	//https://depts.washington.edu/dxscdoc/Help/Tutorials/Mark_Polishook_tutorial/18_Frequency_modulation.html
-	SynthDef.new(\fm1, { arg out, sine_freq = 440, carPartial = 1, modPartial = 1, fm_index = 3, fm_mul = 0.00, sine_pan = 0.0, begin = 0, middle = 1, end = 0, attack_time = 0.01, decay_time = 0.1;
+	SynthDef.new(\fm1, { arg out, sine_freq = 440, carPartial = 1, modPartial = 1, fm_index = 3, fm_mul = 0.00, sine_pan = 0, begin = 0, middle = 1, end = 0, attack_time = 0.01, decay_time = 0.1;
 		// index values usually are between 0 and 24
 		// carPartial :: modPartial => car/mod ratio
 
@@ -17,7 +17,7 @@ alloc {
 		var car;
 		var sig;
 		var amp;
-		var sine_env;
+		var env;
 
 		mod = SinOsc.ar(
 			sine_freq * modPartial,
@@ -30,9 +30,9 @@ alloc {
 			fm_mul
 		);
 		//Looping AD envelope
-		sine_env = Env([0, begin, middle, end], [attack_time, decay_time, 0.1], releaseNode: 2, loopNode: 0);			
+		env = Env([0, begin, middle, end], [attack_time, decay_time, 0.1], releaseNode: 2, loopNode: 0);			
 		//amp and out
-		amp = EnvGen.kr(sine_env, doneAction: Done.freeSelf);
+		amp = EnvGen.kr(env);
 		sig = Pan2.ar(car * amp, sine_pan, 1);			
 
 		Out.ar(out, sig)			
@@ -79,7 +79,7 @@ alloc {
 		synths[msg[1]].set(\sine_freq, msg[2]);
 	});
 	//envelope settings
-	this.addCommand(\sine_env, "iiiiii", { 
+	this.addCommand(\env, "iiiiii", { 
 		arg msg;
 		synths[msg[1]].set(\begin, msg[2]);
 		synths[msg[1]].set(\middle, msg[3]);
