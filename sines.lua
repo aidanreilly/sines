@@ -63,6 +63,11 @@ function add_params()
   params:add{type = "number", id = "root_note", name = "root note",
     min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
   action = function() build_scale() end}
+  --individual voice volume
+  for i = 1,16 do
+    params:add_control("vol" .. i, "voice " .. i .. " volume", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
+    params:set_action("vol" .. i, function(x) engine.fm_mul(i - 1, x) end)
+  end
   params:default()
 end
 
@@ -113,11 +118,13 @@ function set_synth_pan(synth_num, value)
 end
 
 function set_vol(synth_num, value)
-  engine.fm_mul(synth_num -1, value)
+  params:set("vol" .. synth_num, value)
+  --engine.fm_mul(synth_num -1, value)
 end
 
 function set_vol_from_cc(cc_num, value)
-  engine.fm_mul(cc_num - 32, value)
+  params:set("vol" .. cc_num - 31, value)
+  --engine.fm_mul(cc_num - 32, value)
 end
 
 m = midi.connect()
