@@ -1,4 +1,4 @@
---- ~ Sines v0.3 ~
+--- ~ Sines v0.4 ~
 -- E1 - overall volume
 -- E2 - select sine 1-16
 -- E3 - set sine amplitude
