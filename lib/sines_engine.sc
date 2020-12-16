@@ -34,7 +34,8 @@ alloc {
 		//amp and out
 		amp = EnvGen.kr(env);
 		sig = Pan2.ar(car * amp, sine_pan, 1);			
-
+		sig = LeakDC.ar(sig);
+		
 		Out.ar(out, sig)			
 	}).add;
 
