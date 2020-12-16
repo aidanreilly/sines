@@ -64,9 +64,7 @@ function add_params()
     min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
   action = function() build_scale() end}
   --cc_starting_num sets the default starting cc number for consecutive cc voice control. 
-  params:add{type = "number", id = "cc_starting_num", name = "cc starting number", min = 0, max = 127, default = 32} 
-  --params:add_number("cc_starting_num", "cc_starting_num", 0, 127, 32)
-  --params:set_action("cc_starting_num", function(x) params:set("cc_starting_num", x) end)
+  params:add{type = "number", id = "cc_starting_num", name = "cc starting number", min = 0, max = 127, default = 32}
   --voice vol controls
   for i = 1,16 do
     params:add_control("vol" .. i, "voice " .. i .. " volume", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
