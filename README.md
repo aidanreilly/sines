@@ -2,7 +2,7 @@
 
 A simple FM sine drone synth with 16 independant sine waves. Each sine wave is FM modulated with configurable carrier - modulator FM index.
 
-Control sine amplitudes with norns or a midi controller (hardcoded by default for 16n midi cc's). Sine amplitude controls can be midi mapped.
+Control sine amplitudes and FM indexes with norns or a midi controller (Sine amplitudes are hardcoded by default for 16n midi cc's). Sine amplitude and FM index controls can be midi mapped.
 
 ![sines](sines.png)
 
@@ -14,7 +14,7 @@ To install sines, visit http://norns.local/ in a browser, and enter the followin
 
 	norns.fetch("https://github.com/aidanreilly/sines")
 
-Then, `SYSTEM => RESET` on norns to pick up the new SuperCollider engine.
+Then, `SYSTEM => RESET` on norns to pick up the new SuperCollider engine. Reboot for good measure. By default, sines expects consecutive midi cc's mapped from cc 32 onwards. You can change this value on the parameters page.
 
 ## Play
 
@@ -34,5 +34,5 @@ Controls:
 
 ### Optional
 
-Control individual sine wave amplitudes with 16n or other midi controller, on midi cc's 32-47, channel 1.
+Control individual sine wave amplitudes with 16n or other midi controller, default is midi cc 32-47, channel 1.
 

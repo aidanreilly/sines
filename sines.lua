@@ -104,7 +104,7 @@ end
 
 function set_fm_index(synth_num, value)
   --set index between 0-24 for pleasant sounds
-  engine.fm_index(synth_num - 1, value)
+  params:set("fm_index" .. synth_num, value)
 end
 
 function set_env(synth_num, env_name)
