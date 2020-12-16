@@ -68,6 +68,10 @@ function add_params()
     params:add_control("vol" .. i, "voice " .. i .. " volume", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
     params:set_action("vol" .. i, function(x) engine.fm_mul(i - 1, x) end)
   end
+  for i = 1,16 do
+    params:add_control("fm_index" .. i, "voice " .. i .. " index", controlspec.new(0, 100, 'lin', 1, 0))
+    params:set_action("fm_index" .. i, function(x) engine.fm_index(i - 1, x) end)
+  end
   params:default()
 end
 
@@ -97,7 +101,12 @@ end
 
 function set_fm_index(synth_num, value)
   --set index between 0-24 for pleasant sounds
-  engine.fm_index(synth_num - 1, value)
+  --engine.fm_index(synth_num - 1, value)
+  params:set("fm_index" .. synth_num, value)
+end
+
+function set_fm_index_from_cc(cc_num, value)
+  params:set("fm_index" .. cc_num - 49, value)
 end
 
 function set_env(synth_num, env_name)
@@ -127,22 +136,37 @@ function set_vol_from_cc(cc_num, value)
   --engine.fm_mul(cc_num - 32, value)
 end
 
-m = midi.connect()
+m = midi.connect(1)
 m.event = function(data)
 local d = midi.to_msg(data)
 if d.type == "cc" then
   --clamp the cc value to acceptable range for engine sinOsc
-  cc_val = util.clamp((d.val/127), 0.0, 1.0)
-  set_vol_from_cc(d.cc, cc_val)
-  --edit is the current slider, map this to d.cc 
-  edit = d.cc - 32
-  --clamp cc_val value to set gui slider
-  sliders[edit+1] = cc_val*32
-  if sliders[edit+1] > 32 then sliders[edit+1] = 32 end
-  if sliders[edit+1] < 0 then sliders[edit+1] = 0 end
+  if (d.cc >= 32 and d.cc <= 47) then
+    cc_val = util.clamp((d.val/127), 0.0, 1.0)
+    set_vol_from_cc(d.cc, cc_val)
+    --edit is the current slider, map this to d.cc 
+    edit = d.cc - 32
+    --clamp cc_val value to set gui slider
+    sliders[edit+1] = cc_val*32
+    if sliders[edit+1] > 32 then sliders[edit+1] = 32 end
+    if sliders[edit+1] < 0 then sliders[edit+1] = 0 end
+  end
 end
 redraw()
 end
+
+m = midi.connect(2)
+m.event = function(data)
+local d = midi.to_msg(data)
+if d.type == "cc" then
+  if (d.cc >= 50 and d.cc <= 66) then
+    cc_val = util.clamp((d.val/127), 0.0, 1.0)
+    set_fm_index_from_cc(d.cc, cc_val*100)  
+  end
+end
+redraw()
+end
+
 
 function set_pan()
   -- pan position on the bus, -1 is left, 1 is right
@@ -218,10 +242,7 @@ function enc(n, delta)
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
       -- set the index_slider value
-      index_values[edit+1] = index_values[edit+1] + delta
-      if index_values[edit+1] > 500 then index_values[edit+1] = 500 end
-      if index_values[edit+1] < 0 then index_values[edit+1] = 0 end
-      set_fm_index(edit+1, index_values[edit+1])
+      set_fm_index(edit+1, params:get('fm_index') + 1)
     end
   end
   redraw()
@@ -280,7 +301,7 @@ function redraw()
   screen.level(2)
   screen.text(" FM Ind: ")
   screen.level(15)
-  screen.text(index_values[edit+1])
+  screen.text(params:get('fm_index' .. edit+1))
   screen.move(0,19)
   screen.level(2)
   screen.text("Pan: ")
