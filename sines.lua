@@ -7,8 +7,8 @@
 -- K3 + E2 - change envelope
 -- K3 + E3 - change FM index
 -- K2 + K3 - set voice panning
-
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+local cc_vol_list = {}
 local cents_values = {}
 local index_values = {}
 local env_types = {"drone", "am1", "am2", "am3", "pulse1", "pulse2", "pulse3", "pulse4", "ramp1", "ramp2", "ramp3", "ramp4", "evolve1", "evolve2", "evolve3", "evolve4"}
@@ -63,10 +63,19 @@ function add_params()
   params:add{type = "number", id = "root_note", name = "root note",
     min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
   action = function() build_scale() end}
-  --individual voice volumes
+  --cc_starting_num sets the default starting cc number for consecutive cc voice control. 
+  params:add{type = "number", id = "cc_starting_num", name = "cc starting number", min = 0, max = 127, default = 32} 
+  --params:add_number("cc_starting_num", "cc_starting_num", 0, 127, 32)
+  --params:set_action("cc_starting_num", function(x) params:set("cc_starting_num", x) end)
+  --voice vol controls
   for i = 1,16 do
     params:add_control("vol" .. i, "voice " .. i .. " volume", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
     params:set_action("vol" .. i, function(x) engine.fm_mul(i - 1, x) end)
+  end
+  --voice fm controls
+  for i = 1,16 do
+    params:add_control("fm_index" .. i, "fm_index " .. i, controlspec.new(0.0, 400.0, 'lin', 0.1, 3.0))
+    params:set_action("fm_index" .. i, function(x) engine.fm_index(i - 1, x) end)
   end
   params:default()
 end
@@ -119,29 +128,22 @@ end
 
 function set_vol(synth_num, value)
   params:set("vol" .. synth_num, value)
-  --engine.fm_mul(synth_num -1, value)
 end
 
-function set_vol_from_cc(cc_num, value)
-  params:set("vol" .. cc_num - 31, value)
-  --engine.fm_mul(cc_num - 32, value)
-end
-
+--midi device
 m = midi.connect()
 m.event = function(data)
-local d = midi.to_msg(data)
-if d.type == "cc" then
-  --clamp the cc value to acceptable range for engine sinOsc
-  cc_val = util.clamp((d.val/127), 0.0, 1.0)
-  set_vol_from_cc(d.cc, cc_val)
-  --edit is the current slider, map this to d.cc 
-  edit = d.cc - 32
-  --clamp cc_val value to set gui slider
-  sliders[edit+1] = cc_val*32
-  if sliders[edit+1] > 32 then sliders[edit+1] = 32 end
-  if sliders[edit+1] < 0 then sliders[edit+1] = 0 end
-end
-redraw()
+  local d = midi.to_msg(data)
+  if d.type == "cc" then
+    edit = d.cc - params:get("cc_starting_num")
+    for i = 1,16 do
+      cc_vol_list[i] = params:get("vol" .. i)
+      sliders[i] = cc_vol_list[i]*32-1
+      if sliders[i] > 32 then sliders[i] = 32 end
+      if sliders[i] < 0 then sliders[i] = 0 end 
+    end
+  end
+  redraw()
 end
 
 function set_pan()
@@ -225,7 +227,6 @@ function enc(n, delta)
     end
   end
   redraw()
-  set_pan()
 end
 
 function key(n, z)
