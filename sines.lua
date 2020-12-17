@@ -72,7 +72,7 @@ function add_params()
   end
   --voice fm controls
   for i = 1,16 do
-    params:add_control("fm_index" .. i, "fm_index " .. i, controlspec.new(0.0, 400.0, 'lin', 0.1, 3.0))
+    params:add_control("fm_index" .. i, "fm_index " .. i, controlspec.new(0.1, 400.0, 'lin', 0.1, 3.0))
     params:set_action("fm_index" .. i, function(x) engine.fm_index(i - 1, x) end)
   end
   params:default()
