@@ -110,7 +110,7 @@ end
 
 function set_env(synth_num, env_name)
   --goofy way to loop through the envs list, but whetever
-  for i = 1,13 do
+  for i = 1,16 do
     if envs[i][1] == env_name then
       engine.env(synth_num - 1, envs[i][2], envs[i][3], envs[i][4], envs[i][5], envs[i][6])
     end
