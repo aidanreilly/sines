@@ -68,7 +68,7 @@ function add_params()
   --voice vol controls
   for i = 1,16 do
     params:add_control("vol" .. i, "voice " .. i .. " volume", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
-    params:set_action("vol" .. i, function(x) engine.fm_mul(i - 1, x) end)
+    params:set_action("vol" .. i, function(x) engine.sine_vol(i - 1, x) end)
   end
   --voice fm controls
   for i = 1,16 do

@@ -9,7 +9,7 @@ Engine_Sines : CroneEngine {
 
 alloc {
 	//https://depts.washington.edu/dxscdoc/Help/Tutorials/Mark_Polishook_tutorial/18_Frequency_modulation.html
-	SynthDef.new(\fm1, { arg out, sine_freq = 440, carPartial = 1, modPartial = 1, fm_index = 3.0, fm_mul = 0.01, sine_pan = 0, begin = 0, middle = 1, end = 0, attack_time = 0.01, decay_time = 0.1;
+	SynthDef.new(\fm1, { arg out, sine_freq = 440, carPartial = 1, modPartial = 1, fm_index = 3.0, sine_vol = 1.0, sine_pan = 0, begin = 0, middle = 1, end = 0, attack_time = 0.01, decay_time = 0.1;
 		// index values usually are between 0 and 24
 		// carPartial :: modPartial => car/mod ratio
 
@@ -27,7 +27,7 @@ alloc {
 		car = SinOsc.ar(
 			sine_freq * carPartial + mod,
 			0,
-			fm_mul
+			sine_vol
 		);
 		//Looping AD envelope
 		env = Env([0, begin, middle, end], [attack_time, decay_time, 0.1], releaseNode: 2, loopNode: 0);			
@@ -44,14 +44,14 @@ alloc {
 		var out;
 		var sine_freq;
 		var fm_index;
-		var fm_mul;
+		var sine_vol;
 		var sine_pan;
 		var attack_time; 
 		var decay_time;
 		var begin;
 		var middle;
 		var end; 
-		var params = [out, \sine_freq, sine_freq, \fm_index, fm_index, \fm_mul, fm_mul, \sine_pan, sine_pan, \begin, begin, \middle, middle, \end, end, \attack_time, attack_time, \decay_time, decay_time];
+		var params = [out, \sine_freq, sine_freq, \fm_index, fm_index, \sine_vol, sine_vol, \sine_pan, sine_pan, \begin, begin, \middle, middle, \end, end, \attack_time, attack_time, \decay_time, decay_time];
 		//params.postln;
 		// this is where we supply the name of the def we made
 		Synth.new(\fm1, params, target: context.og);
@@ -60,7 +60,7 @@ alloc {
 	context.server.sync;
 
 	//pan settings
-	this.addCommand(\sine_pan, "ii", {
+	this.addCommand(\sine_pan, "if", {
 		arg msg;
 		synths[msg[1]].set(\sine_pan, msg[2]);
 	});
@@ -70,12 +70,12 @@ alloc {
 		synths[msg[1]].set(\fm_index, msg[2]);
 	});
 	//amp settings
-	this.addCommand(\fm_mul, "if", {
+	this.addCommand(\sine_vol, "if", {
 		arg msg;
-		synths[msg[1]].set(\fm_mul, msg[2]);
+		synths[msg[1]].set(\sine_vol, msg[2]);
 	});
 	//freq settings
-	this.addCommand(\sine_freq, "ii", { 
+	this.addCommand(\sine_freq, "if", { 
 		arg msg;
 		synths[msg[1]].set(\sine_freq, msg[2]);
 	});
