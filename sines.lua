@@ -10,7 +10,6 @@
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local cc_vol_list = {}
 local cents_values = {}
-local index_values = {}
 local env_types = {"drone", "am1", "am2", "am3", "pulse1", "pulse2", "pulse3", "pulse4", "ramp1", "ramp2", "ramp3", "ramp4", "evolve1", "evolve2", "evolve3", "evolve4"}
 local envs = {{"drone", 1, 1, 1, 1, 1},
 {"am1", 0, 1, 0, 0.01, 0.1},
@@ -92,13 +91,12 @@ end
 
 function set_voices()
   for i = 1,16 do
-    index_values[i] = 3
     cents_values[i] = 0
     env_values[i] = "drone"
     set_env(i, "drone")
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
     set_vol(i, 0)
-    set_fm_index(i, index_values[i])
+    set_fm_index(i, params:get("fm_index" .. i))
   end
 end
 
@@ -218,10 +216,7 @@ function enc(n, delta)
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
       -- set the index_slider value
-      index_values[edit+1] = index_values[edit+1] + delta
-      if index_values[edit+1] > 500 then index_values[edit+1] = 500 end
-      if index_values[edit+1] < 0 then index_values[edit+1] = 0 end
-      set_fm_index(edit+1, index_values[edit+1])
+      set_fm_index(edit, params:get("fm_index" .. edit))
     end
   end
   redraw()
@@ -279,7 +274,7 @@ function redraw()
   screen.level(2)
   screen.text(" FM Ind: ")
   screen.level(15)
-  screen.text(index_values[edit+1])
+  screen.text(params:get("fm_index" .. edit+1))
   screen.move(0,19)
   screen.level(2)
   screen.text("Pan: ")
