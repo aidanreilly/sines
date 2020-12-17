@@ -93,19 +93,12 @@ end
 function set_voices()
   for i = 1,16 do
     cents_values[i] = 0
-    cc_fm_index_list[i] = 3.0
     env_values[i] = "drone"
     set_env(i, "drone")
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
     set_vol(i, 0)
-    set_fm_index(i, params:get("fm_index" .. i))
+    params:set("fm_index" .. i, 3.0)
   end
-end
-
-function set_fm_index(synth_num, value)
-  --set index between 0-24 for pleasant sounds
-  params:set("fm_index" .. synth_num, value)
-  cc_fm_index_list[synth_num - 1] = value
 end
 
 function set_env(synth_num, env_name)
@@ -136,7 +129,6 @@ m.event = function(data)
   if d.type == "cc" then
     edit = d.cc - params:get("cc_starting_num")
     for i = 1,16 do
-      cc_fm_index_list[i] = params:get("fm_index" .. i)
       cc_vol_list[i] = params:get("vol" .. i)
       sliders[i] = cc_vol_list[i]*32-1
       if sliders[i] > 32 then sliders[i] = 32 end
@@ -220,9 +212,7 @@ function enc(n, delta)
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
       -- set the index_slider value
-      cc_fm_index_list[edit+1] = params:get("fm_index" .. edit+1)
-      --this is goofy af
-      set_fm_index(edit+1, cc_fm_index_list[edit] + delta)
+      params:set("fm_index" .. edit+1, params:get("fm_index" .. edit+1) + delta)
     end
   end
   redraw()
@@ -280,7 +270,7 @@ function redraw()
   screen.level(2)
   screen.text(" FM Ind: ")
   screen.level(15)
-  screen.text(cc_fm_index_list[edit+1])
+  screen.text(params:get("fm_index" .. edit+1))
   screen.move(0,19)
   screen.level(2)
   screen.text("Pan: ")
