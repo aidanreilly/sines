@@ -96,13 +96,13 @@ function set_voices()
     env_values[i] = "drone"
     set_env(i, "drone")
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
-    set_vol(i, 0)
+    params:set("vol" .. i, 0)
     params:set("fm_index" .. i, 3.0)
   end
 end
 
 function set_env(synth_num, env_name)
-  --goofy way to loop through the envs list, but whetever
+  --goofy way to loop through the envs list, but whatever
   for i = 1,16 do
     if envs[i][1] == env_name then
       engine.env(synth_num - 1, envs[i][2], envs[i][3], envs[i][4], envs[i][5], envs[i][6])
@@ -118,10 +118,6 @@ function set_synth_pan(synth_num, value)
   engine.sine_pan(synth_num - 1, value)
 end
 
-function set_vol(synth_num, value)
-  params:set("vol" .. synth_num, value)
-end
-
 --midi device
 m = midi.connect()
 m.event = function(data)
@@ -129,8 +125,7 @@ m.event = function(data)
   if d.type == "cc" then
     edit = d.cc - params:get("cc_starting_num")
     for i = 1,16 do
-      cc_vol_list[i] = params:get("vol" .. i)
-      sliders[i] = cc_vol_list[i]*32-1
+      sliders[i] = (params:get("vol" .. i))*32-1
       if sliders[i] > 32 then sliders[i] = 32 end
       if sliders[i] < 0 then sliders[i] = 0 end 
     end
@@ -197,7 +192,7 @@ function enc(n, delta)
       --set the slider value
       sliders[edit+1] = sliders[edit+1] + delta
       amp_value = util.clamp(((sliders[edit+1] + delta) * .026), 0.0, 1.0)
-      set_vol(edit+1, amp_value)
+      params:set("vol" .. edit+1, amp_value)
       if sliders[edit+1] > 32 then sliders[edit+1] = 32 end
       if sliders[edit+1] < 0 then sliders[edit+1] = 0 end
     elseif key_2_pressed == 1 and key_3_pressed == 0 then
