@@ -9,6 +9,7 @@
 -- K2 + K3 - set voice panning
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local cc_vol_list = {}
+local cc_fm_index_list = {}
 local cents_values = {}
 local env_types = {"drone", "am1", "am2", "am3", "pulse1", "pulse2", "pulse3", "pulse4", "ramp1", "ramp2", "ramp3", "ramp4", "evolve1", "evolve2", "evolve3", "evolve4"}
 local envs = {{"drone", 1, 1, 1, 1, 1},
@@ -92,6 +93,7 @@ end
 function set_voices()
   for i = 1,16 do
     cents_values[i] = 0
+    cc_fm_index_list[i] = 3.0
     env_values[i] = "drone"
     set_env(i, "drone")
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
@@ -103,6 +105,7 @@ end
 function set_fm_index(synth_num, value)
   --set index between 0-24 for pleasant sounds
   params:set("fm_index" .. synth_num, value)
+  cc_fm_index_list[synth_num - 1] = value
 end
 
 function set_env(synth_num, env_name)
@@ -133,13 +136,14 @@ m.event = function(data)
   if d.type == "cc" then
     edit = d.cc - params:get("cc_starting_num")
     for i = 1,16 do
+      cc_fm_index_list[i] = params:get("fm_index" .. i)
       cc_vol_list[i] = params:get("vol" .. i)
       sliders[i] = cc_vol_list[i]*32-1
       if sliders[i] > 32 then sliders[i] = 32 end
       if sliders[i] < 0 then sliders[i] = 0 end 
     end
-  end
   redraw()
+  end
 end
 
 function set_pan()
@@ -216,7 +220,9 @@ function enc(n, delta)
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
       -- set the index_slider value
-      set_fm_index(edit, params:get("fm_index" .. edit))
+      cc_fm_index_list[edit+1] = params:get("fm_index" .. edit+1)
+      --this is goofy af
+      set_fm_index(edit+1, cc_fm_index_list[edit] + delta)
     end
   end
   redraw()
@@ -274,7 +280,7 @@ function redraw()
   screen.level(2)
   screen.text(" FM Ind: ")
   screen.level(15)
-  screen.text(params:get("fm_index" .. edit+1))
+  screen.text(cc_fm_index_list[edit+1])
   screen.move(0,19)
   screen.level(2)
   screen.text("Pan: ")
