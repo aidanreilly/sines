@@ -2,7 +2,7 @@
 
 A simple FM sine drone synth with 16 independant sine waves. Each sine wave is FM modulated with configurable carrier - modulator FM index.
 
-Control sine amplitudes and FM indexes with norns or a midi controller (Sine amplitudes are hardcoded by default for 16n midi cc's). Sine amplitude and FM index controls can be midi mapped.
+Control sine amplitudes and FM indexes with norns or a midi controller. Sine amplitude and FM index controls can be midi-mapped.
 
 ![sines](sines.png)
 
