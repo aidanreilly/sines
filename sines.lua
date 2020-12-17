@@ -212,7 +212,7 @@ function enc(n, delta)
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
       -- set the index_slider value
-      params:set("fm_index" .. edit+1, params:get("fm_index" .. edit+1) + delta)
+      params:set("fm_index" .. edit+1, params:get("fm_index" .. edit+1) + (delta) * 0.1)
     end
   end
   redraw()
