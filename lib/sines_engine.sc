@@ -16,10 +16,10 @@ Engine_Sines : CroneEngine {
     var server = Crone.server;
     var def = SynthDef.new(\sin, {
       arg out, hz=220, hz_lag=0.005,
-        amp=0.0, amp_atk=0.001, amp_rel=0.05,
+        env_bias=0.0, amp_atk=0.001, amp_rel=0.05,
         pan=0, pan_lag=0.005, mul=1, modPartial=1, carPartial=1, fm_index=1;
       var mod, car, amp_, hz_, pan_;
-      amp_ = LagUD.ar(K2A.ar(amp), amp_atk, amp_rel);
+      amp_ = EnvGen.ar(Env.circle([0, 1, 0], [amp_atk, amp_rel, 0.001]), levelBias: env_bias);
       hz_ = Lag.ar(K2A.ar(hz), hz_lag);
       pan_ = Lag.ar(K2A.ar(pan), pan_lag);
       //could also try replacing with https://doc.sccode.org/Classes/PMOsc.html
@@ -32,7 +32,7 @@ Engine_Sines : CroneEngine {
 
     synth = Array.fill(num, { Synth.new(\sin, [\out, context.out_b], target: context.xg) });
 
-    #[\hz, \amp, \pan, \amp_atk, \amp_rel, \hz_lag, \pan_lag, \fm_index].do({
+    #[\hz, \env_bias, \pan, \amp_atk, \amp_rel, \hz_lag, \pan_lag, \fm_index].do({
       arg name;
       this.addCommand(name, "if", {
         arg msg;
