@@ -1,5 +1,5 @@
 --- ~ Sines v0.5 ~
--- E1 - overall volume
+-- E1 - norns volume
 -- E2 - select sine 1-16
 -- E3 - set sine amplitude
 -- K2 + E2 - change note
