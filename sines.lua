@@ -8,26 +8,24 @@
 -- K3 + E3 - change FM index
 -- K2 + K3 - set voice panning
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-local cc_vol_list = {}
-local cc_fm_index_list = {}
 local cents_values = {}
 local env_types = {"drone", "am1", "am2", "am3", "pulse1", "pulse2", "pulse3", "pulse4", "ramp1", "ramp2", "ramp3", "ramp4", "evolve1", "evolve2", "evolve3", "evolve4"}
-local envs = {{"drone", 1, 1, 1, 1, 1},
-{"am1", 0, 1, 0, 0.01, 0.1},
-{"am2", 0, 1, 0, 0.01, 0.2},
-{"am3", 0, 1, 0, 0.01, 0.5},
-{"pulse1", 0, 1, 0, 0.01, 0.8},
-{"pulse2", 0, 1, 0, 0.01, 1},
-{"pulse3", 0, 1, 0, 0.01, 1.2},
-{"pulse4", 0, 1, 0, 0.01, 1.5},
-{"ramp1", 0, 1, 0, 1.5, 0.01},
-{"ramp2", 0, 1, 0, 2, 0.01},
-{"ramp3", 0, 1, 0, 3, 0.01},
-{"ramp4", 0, 1, 0, 4, 0.01},
-{"evolve1", 0, 1, 0, 10, 11},
-{"evolve2", 0, 1, 0, 15, 10},
-{"evolve3", 0, 1, 0, 20, 10},
-{"evolve4", 0, 1, 0, 25, 15}
+local envs = {{"drone", 1, 1},
+{"am1", 0.01, 0.1},
+{"am2", 0.01, 0.2},
+{"am3", 0.01, 0.5},
+{"pulse1", 0.01, 0.8},
+{"pulse2", 0.01, 1},
+{"pulse3", 0.01, 1.2},
+{"pulse4", 0.01, 1.5},
+{"ramp1", 1.5, 0.01},
+{"ramp2", 2, 0.01},
+{"ramp3", 3, 0.01},
+{"ramp4", 4, 0.01},
+{"evolve1", 10, 11},
+{"evolve2", 15, 10},
+{"evolve3", 20, 10},
+{"evolve4", 25, 15}
 }
 local env_values = {}
 local edit = 1
@@ -53,6 +51,9 @@ function init()
   set_voices()
 end
 
+--\hz, \amp, \pan, \amp_atk, \amp_rel, \hz_lag, \pan_lag, \fm_index
+
+
 function add_params()
   for i = 1, #MusicUtil.SCALES do
     table.insert(scale_names, string.lower(MusicUtil.SCALES[i].name))
@@ -68,7 +69,7 @@ function add_params()
   --voice vol controls
   for i = 1,16 do
     params:add_control("vol" .. i, "voice " .. i .. " volume", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
-    params:set_action("vol" .. i, function(x) engine.sine_vol(i - 1, x) end)
+    params:set_action("vol" .. i, function(x) engine.amp(i - 1, x) end)
   end
   --voice fm controls
   for i = 1,16 do
@@ -105,17 +106,20 @@ function set_env(synth_num, env_name)
   --goofy way to loop through the envs list, but whatever
   for i = 1,16 do
     if envs[i][1] == env_name then
-      engine.env(synth_num - 1, envs[i][2], envs[i][3], envs[i][4], envs[i][5], envs[i][6])
+      --\amp_atk, \amp_rel
+      engine.amp_atk(synth_num - 1, envs[i][2])
+      engine.amp_rel(synth_num - 1, envs[i][3])
     end
   end
 end
 
 function set_freq(synth_num, value)
-  engine.sine_freq(synth_num -1, value)
+  engine.hz(synth_num -1, value)
+  engine.hz_lag(synth_num -1, 0.005)
 end
 
 function set_synth_pan(synth_num, value)
-  engine.sine_pan(synth_num - 1, value)
+  engine.pan(synth_num - 1, value)
 end
 
 --midi device

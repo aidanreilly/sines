@@ -1,115 +1,55 @@
-//16 FM modulated sine waves
+// 16sines
+// a lot of sines
+// with amplitude modulation
+// https://github.com/catfact/zebra/blob/master/lib/Engine_Zsins.sc
+// thank you zebra
+
 Engine_Sines : CroneEngine {
+  classvar num;
+  var <synth;
 
-	var <synths;
+  *initClass {  num = 16; }
 
-	*new { arg context, doneCallback;
-	^super.new(context, doneCallback);
+  *new { arg context, doneCallback;
+    ^super.new(context, doneCallback);
+  }
+
+  alloc {
+    var server = Crone.server;
+    var def = SynthDef.new(\sin, {
+      arg out, hz=220, hz_lag=0.005,
+        amp=0.0, amp_atk=0.001, amp_rel=0.05,
+        pan=0, pan_lag=0.005, mul=1, modPartial=1, carPartial=1, fm_index=1;
+      var mod, car, amp_, hz_, pan_;
+      amp_ = LagUD.ar(K2A.ar(amp), amp_atk, amp_rel);
+      hz_ = Lag.ar(K2A.ar(hz), hz_lag);
+      pan_ = Lag.ar(K2A.ar(pan), pan_lag);
+      //could also try replacing with https://doc.sccode.org/Classes/PMOsc.html
+      mod = SinOsc.ar(hz_ * modPartial, 0, hz_ * fm_index * LFNoise1.kr(5.reciprocal).abs);
+      car = SinOsc.ar(hz_ * carPartial + mod, 0, mul);
+      Out.ar(out, Pan2.ar(car * amp_, pan));
+    });
+    def.send(server);
+    server.sync;
+
+    synth = Array.fill(num, { Synth.new(\sin, [\out, context.out_b], target: context.xg) });
+
+    #[\hz, \amp, \pan, \amp_atk, \amp_rel, \hz_lag, \pan_lag, \fm_index].do({
+      arg name;
+      this.addCommand(name, "if", {
+        arg msg;
+        var i = msg[1] -1;
+        if(i<num && i >= 0, {
+          synth[i].set(name, msg[2]);
+        });
+      });
+    });
+
+  }
+
+  free {
+    synth.do({ |syn| syn.free; });
+  }
 }
 
-alloc {
-	//https://depts.washington.edu/dxscdoc/Help/Tutorials/Mark_Polishook_tutorial/18_Frequency_modulation.html
-	SynthDef.new(\fm1, { arg out, sine_freq = 440, carPartial = 1, modPartial = 1, fm_index = 3.0, sine_vol = 1.0, sine_pan = 0, begin = 0, middle = 1, end = 0, attack_time = 0.01, decay_time = 0.1;
-		// index values usually are between 0 and 24
-		// carPartial :: modPartial => car/mod ratio
-
-		var mod;
-		var car;
-		var sig;
-		var amp;
-		var env;
-
-		mod = SinOsc.ar(
-			sine_freq * modPartial,
-			0,
-			sine_freq * fm_index * LFNoise1.kr(5.reciprocal).abs
-		);
-		car = SinOsc.ar(
-			sine_freq * carPartial + mod,
-			0,
-			sine_vol
-		);
-		//Looping AD envelope
-		env = Env([0, begin, middle, end], [attack_time, decay_time, 0.1], releaseNode: 2, loopNode: 0);			
-		//amp and out
-		amp = EnvGen.kr(env);
-		sig = Pan2.ar(car * amp, sine_pan, 1);			
-		sig = LeakDC.ar(sig);
-		
-		Out.ar(out, sig)			
-	}).add;
-
-	// make 16 synths, each using the def
-	synths = Array.fill(16, {
-		var out;
-		var sine_freq;
-		var fm_index;
-		var sine_vol;
-		var sine_pan;
-		var attack_time; 
-		var decay_time;
-		var begin;
-		var middle;
-		var end; 
-		var params = [out, \sine_freq, sine_freq, \fm_index, fm_index, \sine_vol, sine_vol, \sine_pan, sine_pan, \begin, begin, \middle, middle, \end, end, \attack_time, attack_time, \decay_time, decay_time];
-		//params.postln;
-		// this is where we supply the name of the def we made
-		Synth.new(\fm1, params, target: context.og);
-	});
-
-	context.server.sync;
-
-	//pan settings
-	this.addCommand(\sine_pan, "if", {
-		arg msg;
-		synths[msg[1]].set(\sine_pan, msg[2]);
-	});
-	//index settings
-	this.addCommand(\fm_index, "if", {
-		arg msg;
-		synths[msg[1]].set(\fm_index, msg[2]);
-	});
-	//amp settings
-	this.addCommand(\sine_vol, "if", {
-		arg msg;
-		synths[msg[1]].set(\sine_vol, msg[2]);
-	});
-	//freq settings
-	this.addCommand(\sine_freq, "if", { 
-		arg msg;
-		synths[msg[1]].set(\sine_freq, msg[2]);
-	});
-	//envelope settings
-	this.addCommand(\env, "iiiiii", { 
-		arg msg;
-		synths[msg[1]].set(\begin, msg[2]);
-		synths[msg[1]].set(\middle, msg[3]);
-		synths[msg[1]].set(\end, msg[4]);
-		synths[msg[1]].set(\attack_time, msg[5]);
-		synths[msg[1]].set(\decay_time, msg[6]);
-	});
-
-}
-
-//free the synths
-free {
-	synths[0].free;
-	synths[1].free;
-	synths[2].free;
-	synths[3].free;
-	synths[4].free;
-	synths[5].free;
-	synths[6].free;
-	synths[7].free;
-	synths[8].free;
-	synths[9].free;
-	synths[10].free;
-	synths[11].free;
-	synths[12].free;
-	synths[13].free;
-	synths[14].free;
-	synths[15].free;
-}
-
-}
 
