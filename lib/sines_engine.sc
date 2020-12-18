@@ -15,7 +15,7 @@ Engine_Sines : CroneEngine {
   alloc {
     var server = Crone.server;
     var def = SynthDef.new(\sin, {
-      arg out, hz=220, hz_lag=0.005,
+      arg out, vol=0.0, hz=220, hz_lag=0.005,
         env_bias=0.0, amp_atk=0.001, amp_rel=0.05,
         pan=0, pan_lag=0.005, mul=1, modPartial=1, carPartial=1, fm_index=1;
       var mod, car, amp_, hz_, pan_;
@@ -25,14 +25,14 @@ Engine_Sines : CroneEngine {
       //could also try replacing with https://doc.sccode.org/Classes/PMOsc.html
       mod = SinOsc.ar(hz_ * modPartial, 0, hz_ * fm_index * LFNoise1.kr(5.reciprocal).abs);
       car = SinOsc.ar(hz_ * carPartial + mod, 0, mul);
-      Out.ar(out, Pan2.ar(car * amp_, pan));
+      Out.ar(out, Pan2.ar(car * amp_ * vol, pan));
     });
     def.send(server);
     server.sync;
 
     synth = Array.fill(num, { Synth.new(\sin, [\out, context.out_b], target: context.xg) });
 
-    #[\hz, \env_bias, \pan, \amp_atk, \amp_rel, \hz_lag, \pan_lag, \fm_index].do({
+    #[\hz, \vol, \env_bias, \pan, \amp_atk, \amp_rel, \hz_lag, \pan_lag, \fm_index].do({
       arg name;
       this.addCommand(name, "if", {
         arg msg;
