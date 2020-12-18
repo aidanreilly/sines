@@ -51,9 +51,6 @@ function init()
   set_voices()
 end
 
---\hz, \amp, \pan, \amp_atk, \amp_rel, \hz_lag, \pan_lag, \fm_index
-
-
 function add_params()
   for i = 1, #MusicUtil.SCALES do
     table.insert(scale_names, string.lower(MusicUtil.SCALES[i].name))
@@ -107,8 +104,8 @@ function set_env(synth_num, env_name)
   for i = 1,16 do
     if envs[i][1] == env_name then
       --\amp_atk, \amp_rel
-      engine.amp_atk(synth_num - 1, envs[i][2])
-      engine.amp_rel(synth_num - 1, envs[i][3])
+      engine.amp_atk(synth_num -1, envs[i][2])
+      engine.amp_rel(synth_num -1, envs[i][3])
     end
   end
 end
@@ -119,7 +116,7 @@ function set_freq(synth_num, value)
 end
 
 function set_synth_pan(synth_num, value)
-  engine.pan(synth_num - 1, value)
+  engine.pan(synth_num -1, value)
 end
 
 --midi device

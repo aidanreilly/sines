@@ -38,10 +38,8 @@ Engine_Sines : CroneEngine {
       arg name;
       this.addCommand(name, "if", {
         arg msg;
-        var i = msg[1] -1;
-        if(i<num && i >= 0, {
-          synth[i].set(name, msg[2]);
-        });
+        var i = msg[1];
+        synth[i].set(name, msg[2]);
       });
     });
 
