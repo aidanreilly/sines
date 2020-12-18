@@ -1,6 +1,4 @@
-// 16sines
-// a lot of sines
-// with amplitude modulation
+// a few sines
 // https://github.com/catfact/zebra/blob/master/lib/Engine_Zsins.sc
 // thank you zebra
 
