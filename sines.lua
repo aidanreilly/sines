@@ -104,7 +104,6 @@ function set_env(synth_num, env_name)
   --goofy way to loop through the envs list, but whatever
   for i = 1,16 do
     if envs[i][1] == env_name then
-      --\env_bias, \amp_atk, \amp_rel
       engine.env_bias(synth_num -1, envs[i][2])
       engine.amp_atk(synth_num -1, envs[i][3])
       engine.amp_rel(synth_num -1, envs[i][4])
