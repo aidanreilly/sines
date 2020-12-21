@@ -14,7 +14,7 @@ To install sines, visit http://norns.local/ in a browser, and enter the followin
 
 	norns.fetch("https://github.com/aidanreilly/sines")
 
-Then, `SYSTEM => RESET` on norns to pick up the new SuperCollider engine. Reboot for good measure. By default, sines expects consecutive midi cc's mapped from cc 32 onwards. You can change this value on the parameters page.
+Then, `SYSTEM => RESET` on norns to pick up the new SuperCollider engine. Reboot for good measure.
 
 ## Play
 
@@ -34,5 +34,5 @@ Controls:
 
 ### Optional
 
-Control individual sine wave amplitudes with 16n or other midi controller, default is midi cc 32-47, channel 1.
+Control individual sine wave amplitudes with 16n or other midi controller. Controls are mapped from the norns parameters page.
 

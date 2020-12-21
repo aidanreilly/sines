@@ -1,4 +1,4 @@
---- ~ Sines v0.5 ~
+--- ~ Sines v0.6 ~
 -- E1 - norns volume
 -- E2 - select sine 1-16
 -- E3 - set sine amplitude
@@ -62,14 +62,12 @@ function add_params()
   params:add{type = "number", id = "root_note", name = "root note",
     min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
   action = function() build_scale() end}
-  --cc_starting_num sets the default starting cc number for consecutive cc voice control. 
-  params:add{type = "number", id = "cc_starting_num", name = "cc starting number", min = 0, max = 127, default = 32}
-  --voice vol controls
+  --set voice vol and fm controls
+  --TODO: add env controls
   for i = 1,16 do
     params:add_control("vol" .. i, "voice " .. i .. " volume", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
-    params:set_action("vol" .. i, function(x) engine.vol(i - 1, x) end)
+    params:set_action("vol" .. i, function(x) set_voice(i - 1, x) end)
   end
-  --voice fm controls
   for i = 1,16 do
     params:add_control("fm_index" .. i, "fm_index " .. i, controlspec.new(0.1, 400.0, 'lin', 0.1, 3.0))
     params:set_action("fm_index" .. i, function(x) engine.fm_index(i - 1, x) end)
@@ -87,6 +85,12 @@ function build_scale()
     --also set notes
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
   end
+end
+
+function set_voice(voice_num, value)
+  engine.vol(voice_num, value)
+  --also set the currently edited voice
+  edit = voice_num
 end
 
 function set_voices()
@@ -120,19 +124,19 @@ function set_synth_pan(synth_num, value)
   engine.pan(synth_num -1, value)
 end
 
---midi device
+--update when a cc change is detected
 m = midi.connect()
 m.event = function(data)
   local d = midi.to_msg(data)
   if d.type == "cc" then
-    edit = d.cc - params:get("cc_starting_num")
+    --set all the sliders
     for i = 1,16 do
       sliders[i] = (params:get("vol" .. i))*32-1
       if sliders[i] > 32 then sliders[i] = 32 end
       if sliders[i] < 0 then sliders[i] = 0 end 
     end
-  redraw()
   end
+  redraw()
 end
 
 function set_pan()
