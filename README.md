@@ -34,5 +34,5 @@ Controls:
 
 ### Optional
 
-Control individual sine wave amplitudes with 16n or other midi controller. Controls are mapped from the norns parameters page.
+Control individual sine wave amplitudes and other parameters with 16n or other midi controller. Controls are mapped from the norns parameters page.
 
