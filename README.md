@@ -2,8 +2,6 @@
 
 A simple FM sine drone synth with 16 independant sine waves. Each sine wave is FM modulated with configurable carrier - modulator FM index.
 
-Control sine amplitudes and FM indexes with norns or a midi controller. Sine amplitude and FM index controls can be midi-mapped.
-
 ![sines](sines.png)
 
 ## Installation
@@ -18,7 +16,7 @@ Then, `SYSTEM => RESET` on norns to pick up the new SuperCollider engine. Reboot
 
 ## Play
 
-Select a root note and scale from the norns parameters menu. 16 frequencies based on the selected scale are applied. You can also tune the sine waves by hand on norns.  
+Select a root note and scale from the norns parameters menu. 16 frequencies based on the selected scale are applied. You can also tune the sine waves by hand on norns. 
 
 Controls:
 
@@ -32,7 +30,9 @@ Controls:
 * [K3] + [E3] change FM index
 * [K2] + [K3] set voice pannning. 'm' centers all voices in the stereo field, 'l/r' pans odd numbered voices hard left, and even numbered voices hard right. 
 
+Saving a pset saves the note selection and midi mapping. The last saved pset is loaded when the app launches.
+
 ### Optional
 
-Control individual sine wave amplitudes with 16n or other midi controller. Controls are mapped from the norns parameters page.
+Control individual sine amplitude, envelope type, and FM index with norns or a midi controller. Controls are mapped from the norns parameters page.
 
