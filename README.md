@@ -6,11 +6,7 @@ A simple FM sine drone synth with 16 independant sine waves. Each sine wave is F
 
 ## Installation
 
-Ensure you are up to date with the latest norns OS.
-
-To install sines, visit http://norns.local/ in a browser, and enter the following in the matron REPL:
-
-	norns.fetch("https://github.com/aidanreilly/sines")
+Ensure you are up to date with the latest norns OS. Visit http://norns.local/ in a browser, and install sines from the maiden project manager.
 
 Then, `SYSTEM => RESET` on norns to pick up the new SuperCollider engine. Reboot for good measure.
 
