@@ -1,0 +1,21 @@
+{
+  "file_info": {
+    "version": 1,
+    "kind": "project_metadata"
+  },
+  "installed_on": "2020-12-24T03:25:45.168339392+07:00",
+  "updated_on": "0001-01-01T00:00:00Z",
+  "project_url": "https://github.com/aidanreilly/sines",
+  "catalog_entry": {
+    "project_name": "sines",
+    "project_url": "https://github.com/aidanreilly/sines",
+    "author": "Aidan Reilly (oootini)",
+    "description": "16 sine waves",
+    "discussion_url": "https://llllllll.co/t/39292",
+    "tags": [
+      "drone",
+      "midi"
+    ],
+    "origin": "lines"
+  }
+}

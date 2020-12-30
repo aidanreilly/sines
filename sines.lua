@@ -1,12 +1,14 @@
---- ~ Sines v0.7 ~
+--- ~ Sines v0.8 ~
 -- E1 - norns volume
 -- E2 - select sine 1-16
 -- E3 - set sine amplitude
 -- K2 + E2 - change note
 -- K2 + E3 - detune
+-- K2 + K3 - set voice panning
 -- K3 + E2 - change envelope
 -- K3 + E3 - change FM index
--- K2 + K3 - set voice panning
+-- K1 + E2 - change sample rate
+-- K1 + E3 - change bit depth
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local env_types = {"drone", "am1", "am2", "am3", "pulse1", "pulse2", "pulse3", "pulse4", "ramp1", "ramp2", "ramp3", "ramp4", "evolve1", "evolve2", "evolve3", "evolve4"}
 -- env_num, env_bias, attack, decay. bias of 1.0 is used to create a static drone
@@ -29,6 +31,8 @@ local envs = {{1, 1.0, 1.0, 1.0},--drone
 }
 local env_values = {}
 local fm_index_values = {}
+local bit_depth_values = {}
+local smpl_rate_values = {}
 local edit = 1
 local env_edit = 1
 local accum = 1
@@ -39,6 +43,7 @@ local cents_increment = 0
 local cents_values = {}
 local scale_names = {}
 local notes = {}
+local key_1_pressed = 0
 local key_2_pressed = 0
 local key_3_pressed = 0
 local toggle = false
@@ -69,12 +74,20 @@ function add_params()
     params:set_action("vol" .. i, function(x) set_voice(i - 1, x) end)
   end
   for i = 1,16 do
-    params:add_control("fm_index" .. i, "fm_index " .. i, controlspec.new(0.1, 100.0, 'lin', 0.1, 3.0))
+    params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.1, 100.0, 'lin', 0.1, 3.0))
     params:set_action("fm_index" .. i, function(x) engine.fm_index(i - 1, x) end)
   end
   for i = 1,16 do
-    params:add_number("env" .. i, "env " .. i, 1, 16, 1)
+    params:add_number("env" .. i, "envelope " .. i, 1, 16, 1)
     params:set_action("env" .. i, function(x) set_env(i, x) end)
+  end
+  for i = 1,16 do
+    params:add_number("smpl_rate" .. i, "sample rate " .. i, 4410, 44100, 44100)
+    params:set_action("smpl_rate" .. i, function(x) engine.sample_rate(i - 1, x) end)
+  end
+  for i = 1,16 do
+    params:add_number("bit_depth" .. i, "bit depth " .. i, 1, 24, 24)
+    params:set_action("bit_depth" .. i, function(x) engine.bit_depth(i - 1, x) end)
   end
   params:default()
   edit = 0
@@ -103,10 +116,14 @@ function set_voices()
     cents_values[i] = 0
     env_values[i] = "drone"
     fm_index_values[i] = 3.0
+    smpl_rate_values[i] = 44100
+    bit_depth_values[i] = 24
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
     params:set("fm_index" .. i, 3.0)
     params:set("vol" .. i, 0.0)
     params:set("env" .. i, 1)
+    params:set("smpl_rate" .. i, 44100)
+    params:set("bit_depth" .. i, 24)
   end
 end
 
@@ -142,11 +159,13 @@ m.event = function(data)
     for i = 1,16 do
       sliders[i] = (params:get("vol" .. i))*32-1
       fm_index_values[i] = params:get("fm_index" .. i)
+      bit_depth_values[i] = params:get("bit_depth" .. i)
+      smpl_rate_values[i] = params:get("smpl_rate" .. i)
       if sliders[i] > 32 then sliders[i] = 32 end
       if sliders[i] < 0 then sliders[i] = 0 end
     end
-    redraw()
   end
+  redraw()
 end
 
 function set_pan()
@@ -177,38 +196,43 @@ end
 
 function enc(n, delta)
   if n == 1 then
-    params:delta('output_level', delta)
-
+    if key_1_pressed == 0 then 
+      params:delta('output_level', delta)
+    end
   elseif n == 2 then
-    if key_2_pressed == 0 and key_3_pressed == 0 then
+    if key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 0 then
       --navigate up/down the list of sliders
       --accum wraps around 0-15
       accum = (accum + delta) % 16
       --edit is the slider number
       edit = accum
-    elseif key_2_pressed == 0 and key_3_pressed == 1 then
+    elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
       env_accum = (env_accum + delta) % 16
       --env_edit is the env_values selector
       env_edit = env_accum
       --set the env
       set_env(edit+1, env_edit+1)
-    elseif key_2_pressed == 1 and key_3_pressed == 0 then
+    elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
       -- increment the note value with delta
       notes[edit+1] = notes[edit+1] + util.clamp(delta, -1, 1)
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]))
       cents_values[edit+1] = 0
       cents_increment = 0
       freq_increment = 0
+    elseif key_1_pressed == 1 and key_2_pressed == 0 and key_3_pressed == 0 then
+      --set sample rate
+      params:set("smpl_rate" .. edit+1, params:get("smpl_rate" .. edit+1) + (delta) * 100)
+      smpl_rate_values[edit+1] = params:get("smpl_rate" .. edit+1)
     end
   elseif n == 3 then
-    if key_3_pressed == 0 and key_2_pressed == 0 then
+    if key_1_pressed == 0 and key_3_pressed == 0 and key_2_pressed == 0 then
       --set the slider value
       sliders[edit+1] = sliders[edit+1] + delta
       amp_value = util.clamp(((sliders[edit+1] + delta) * .026), 0.0, 1.0)
       params:set("vol" .. edit+1, amp_value)
       if sliders[edit+1] > 32 then sliders[edit+1] = 32 end
       if sliders[edit+1] < 0 then sliders[edit+1] = 0 end
-    elseif key_2_pressed == 1 and key_3_pressed == 0 then
+    elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
       -- increment the current note freq
       freq_increment = freq_increment + util.clamp(delta, -1, 1) * 0.1
       -- calculate increase in cents
@@ -218,10 +242,14 @@ function enc(n, delta)
       cents_increment = math.floor((cents_increment) * 10 / 10)
       cents_values[edit+1] = cents_increment
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)
-    elseif key_2_pressed == 0 and key_3_pressed == 1 then
+    elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
       -- set the index_slider value
       params:set("fm_index" .. edit+1, params:get("fm_index" .. edit+1) + (delta) * 0.1)
       fm_index_values[edit+1] = params:get("fm_index" .. edit+1)
+    elseif key_1_pressed == 1  and key_2_pressed == 0 and key_3_pressed == 0 then
+      --set bit depth
+      params:set("bit_depth" .. edit+1, params:get("bit_depth" .. edit+1) + (delta))
+      bit_depth_values[edit+1] = params:get("bit_depth" .. edit+1)
     end
   end
   redraw()
@@ -229,7 +257,11 @@ end
 
 function key(n, z)
   --use these keypress variables to add extra functionality on key hold
-  if n == 2 and z == 1 then
+  if n == 1 and z == 1 then
+    key_1_pressed = 1
+  elseif n == 1 and z == 0 then
+    key_1_pressed = 0  
+  elseif n == 2 and z == 1 then
     key_2_pressed = 1
   elseif n == 2 and z == 0 then
     key_2_pressed = 0
@@ -247,19 +279,18 @@ function redraw()
   screen.line_width(2.0)
   screen.clear()
 
-  for i=0, 15 do
+  for i= 0, 15 do
     if i == edit then
       screen.level(15)
     else
       screen.level(2)
     end
-    screen.move(32+i*4, 54)
-    screen.line(32+i*4, 52-sliders[i+1])
+    screen.move(32+i*4, 62)
+    screen.line(32+i*4, 60-sliders[i+1])
     screen.stroke()
   end
-
   screen.level(10)
-  screen.line(32+step*4, 58)
+  screen.line(32+step*4, 68)
   screen.stroke()
   --display current values
   screen.move(0,5)
@@ -281,6 +312,17 @@ function redraw()
   screen.level(15)
   screen.text(fm_index_values[edit+1])
   screen.move(0,19)
+
+
+  screen.level(2)
+  screen.text("Smpl rate: ")
+  screen.level(15)
+  screen.text(smpl_rate_values[edit+1]/1000)
+  screen.level(2)
+  screen.text(" Bits: ")
+  screen.level(15)
+  screen.text(bit_depth_values[edit+1])
+  screen.move(0,26)
   screen.level(2)
   screen.text("Pan: ")
   screen.level(15)
