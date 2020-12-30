@@ -215,7 +215,7 @@ function enc(n, delta)
       freq_increment = 0
     elseif key_1_pressed == 1 and key_2_pressed == 0 and key_3_pressed == 0 then
       --set sample rate
-      params:set("smpl_rate" .. edit+1, params:get("smpl_rate" .. edit+1) + (delta) * 100)
+      params:set("smpl_rate" .. edit+1, params:get("smpl_rate" .. edit+1) + (delta) * 1000)
       smpl_rate_values[edit+1] = params:get("smpl_rate" .. edit+1)
     end
   elseif n == 3 then
