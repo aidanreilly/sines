@@ -1,6 +1,6 @@
 # Sines
 
-A simple FM sine drone synth with 16 independant sine waves. Each sine wave is FM modulated with configurable carrier - modulator FM index.
+A simple FM sine drone synth with 16 independant sine waves. Each sine wave is FM modulated with configurable carrier - modulator FM index. Sample rate and bit depth can be changed for each voice.
 
 ![sines](sines.png)
 
@@ -24,11 +24,13 @@ Controls:
 * [K2] + [E3] detune
 * [K3] + [E2] change envelope
 * [K3] + [E3] change FM index
+* [K1] + [E2] - change sample rate
+* [K1] + [E3] - change bit depth
 * [K2] + [K3] set voice pannning. 'm' centers all voices in the stereo field, 'l/r' pans odd numbered voices hard left, and even numbered voices hard right. 
 
 Saving a pset saves the note selection and midi mapping. The last saved pset is loaded when the app launches.
 
 ### Optional
 
-Control individual sine amplitude, envelope type, and FM index with norns or a midi controller. Controls are mapped from the norns parameters page.
+Control individual sine amplitude, envelope type, bit depth, sample rate, and FM index with norns or a midi controller. Controls are mapped from the norns parameters page.
 
