@@ -74,7 +74,7 @@ function add_params()
     params:set_action("vol" .. i, function(x) set_voice(i - 1, x) end)
   end
   for i = 1,16 do
-    params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.1, 100.0, 'lin', 0.1, 3.0))
+    params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.1, 200.0, 'lin', 0.1, 3.0))
     params:set_action("fm_index" .. i, function(x) engine.fm_index(i - 1, x) end)
   end
   for i = 1,16 do
@@ -114,16 +114,10 @@ end
 function set_voices()
   for i = 1,16 do
     cents_values[i] = 0
-    env_values[i] = "drone"
-    fm_index_values[i] = 3.0
-    smpl_rate_values[i] = 44100
-    bit_depth_values[i] = 24
-    set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
-    params:set("fm_index" .. i, 3.0)
-    params:set("vol" .. i, 0.0)
-    params:set("env" .. i, 1)
-    params:set("smpl_rate" .. i, 44100)
-    params:set("bit_depth" .. i, 24)
+    env_values[i] = env_types[params:get("env" .. i)]
+    fm_index_values[i] = params:get("fm_index" .. i)
+    smpl_rate_values[i] = params:get("smpl_rate" .. i)
+    bit_depth_values[i] = params:get("bit_depth" .. i)
   end
 end
 
@@ -312,14 +306,12 @@ function redraw()
   screen.level(15)
   screen.text(fm_index_values[edit+1])
   screen.move(0,19)
-
-
   screen.level(2)
   screen.text("Smpl rate: ")
   screen.level(15)
   screen.text(smpl_rate_values[edit+1]/1000)
   screen.level(2)
-  screen.text(" Bits: ")
+  screen.text(" Bit dpt: ")
   screen.level(15)
   screen.text(bit_depth_values[edit+1])
   screen.move(0,26)
