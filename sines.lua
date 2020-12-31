@@ -73,8 +73,10 @@ function init()
   lfo_metro.count = -10
   lfo_metro.event = function()
     currentTime = util.time()
-    lfo[1].counter = ((lfo[1].counter + (1*lfo[1].freq)))%100
-    lfo[1].ar = lfo[1].counter*0.64
+    for i = 1,4 do
+      lfo[i].counter = ((lfo[i].counter + (1*lfo[i].freq)))%100
+      lfo[i].ar = lfo[i].counter*0.64
+    end
   end
   lfo_metro:start()
   local arc_redraw_metro = metro.init()
@@ -307,13 +309,15 @@ end
 function arc_redraw()
   local brightness
   a:all(0)
-  if lfo[1].waveform ~= 'rnd'then
-    brightness = 15
-  else
-    brightness = 12
+  for i = 1,4 do
+    if lfo[i].waveform ~= 'rnd'then
+      brightness = 15
+    else
+      brightness = 12
+    end
+    seg = lfo[i].ar/64
+    a:segment(i, seg*tau, tau*seg+0.2, brightness)
   end
-  seg = lfo[1].ar/64
-  a:segment(1, seg*tau, tau*seg+0.2, brightness)
   a:refresh()
 end
 
