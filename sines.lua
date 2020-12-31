@@ -7,6 +7,21 @@
 -- K3 + E2 - change envelope
 -- K3 + E3 - change FM index
 -- K2 + K3 - set voice panning
+
+-- arc lfo control vars
+a = arc.connect()
+c = clock.set_source("internal")
+local framerate = 40
+local arcDirty = true
+local startTime
+local tau = math.pi * 2
+local newSpeed = false
+local options = {}
+options.knobmodes = {"lfo", "val"}
+options.lfotypes = {"sin","saw","sqr","rnd"}
+local lfo = {{init=1, freq=1, counter=1, waveform=options.lfotypes[2], interpolator=1}}
+
+-- engine control vars
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local env_types = {"drone", "am1", "am2", "am3", "pulse1", "pulse2", "pulse3", "pulse4", "ramp1", "ramp2", "ramp3", "ramp4", "evolve1", "evolve2", "evolve3", "evolve4"}
 -- env_num, env_bias, attack, decay. bias of 1.0 is used to create a static drone
@@ -43,6 +58,7 @@ local key_2_pressed = 0
 local key_3_pressed = 0
 local toggle = false
 local pan_display = "m"
+
 
 engine.name = "Sines"
 MusicUtil = require "musicutil"
@@ -173,6 +189,33 @@ function set_pan()
       end
     end
   end
+end
+
+-- helper functions
+
+function interpolate(old, new, n)
+  if lfo[n].interpolator == 0 then lfo[n].interpolator = 50 end
+  t = lfo[n].interpolator/50
+  if lfo[n].interpolater == 50 then newSpeed = false end
+  lfo[n].interpolater = (lfo[n].interpolater + 1) % 50
+end
+
+function slew(old,new,t)
+  slewer = (slewer+1)%t
+  if slewer == 0 then slewer = t end
+  return old + ((new-old)*(slewer/t))
+end
+
+-- hardware functions
+
+function a.delta(n,delta)
+  if lfo[n].interpolater == 1 then
+    lfo[n].freq = lfo[n].freq + delta/50
+    newSpeed = true
+  end
+  lfo[n].interpolater = 1
+  lastTouched = n
+  arcDirty = true
 end
 
 function enc(n, delta)
