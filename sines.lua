@@ -68,26 +68,26 @@ function add_params()
   params:add{type = "number", id = "root_note", name = "root note",
     min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
   action = function() build_scale() end}
-  --set voice vol, fm, env controls
+  --set voice vol, fm, env, sample controls
   for i = 1,16 do
     params:add_control("vol" .. i, "voice " .. i .. " volume", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
     params:set_action("vol" .. i, function(x) set_voice(i - 1, x) end)
   end
   for i = 1,16 do
     params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.1, 200.0, 'lin', 0.1, 3.0))
-    params:set_action("fm_index" .. i, function(x) engine.fm_index(i - 1, x) end)
+    params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
   end
   for i = 1,16 do
     params:add_number("env" .. i, "envelope " .. i, 1, 16, 1)
-    params:set_action("env" .. i, function(x) set_env(i, x) end)
+    params:set_action("env" .. i, function(x) set_env(i - 1, x) end)
   end
   for i = 1,16 do
     params:add_number("smpl_rate" .. i, "sample rate " .. i, 4410, 44100, 44100)
-    params:set_action("smpl_rate" .. i, function(x) engine.sample_rate(i - 1, x) end)
+    params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
   end
   for i = 1,16 do
     params:add_number("bit_depth" .. i, "bit depth " .. i, 1, 24, 24)
-    params:set_action("bit_depth" .. i, function(x) engine.bit_depth(i - 1, x) end)
+    params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
   end
   params:default()
   edit = 0
@@ -109,6 +109,28 @@ function set_voice(voice_num, value)
   engine.vol(voice_num, value)
   --also set the currently edited voice
   edit = voice_num
+  redraw()
+end
+
+function set_fm_index(voice_num, value)
+  engine.fm_index(voice_num, value)
+  fm_index_values[voice_num+1] = params:get("fm_index" .. voice_num+1)
+  edit = voice_num
+  redraw()
+end
+
+function set_sample_rate(voice_num, value)
+  engine.sample_rate(voice_num, value)
+  smpl_rate_values[voice_num+1] = params:get("smpl_rate" .. voice_num+1)
+  edit = voice_num
+  redraw()
+end
+
+function set_bit_depth(voice_num, value)
+  engine.bit_depth(voice_num, value)
+  bit_depth_values[voice_num+1] = params:get("bit_depth" .. voice_num+1)
+  edit = voice_num
+  redraw()
 end
 
 function set_voices()
@@ -128,15 +150,18 @@ function set_env(synth_num, env_num)
       engine.env_bias(synth_num - 1, envs[i][2])
       engine.amp_atk(synth_num - 1, envs[i][3])
       engine.amp_rel(synth_num - 1, envs[i][4])
+      env_edit = env_num
+      env_values[synth_num] = env_types[env_edit]
+      print (env_values[synth_num])
+      redraw()
     end
   end
-  env_edit = env_num
-  env_values[synth_num] = env_types[env_edit]  
 end
 
 function set_freq(synth_num, value)
   engine.hz(synth_num - 1, value)
   engine.hz_lag(synth_num - 1, 0.005)
+  redraw()
 end
 
 function set_synth_pan(synth_num, value)
@@ -149,12 +174,9 @@ m.event = function(data)
   redraw()
   local d = midi.to_msg(data)
   if d.type == "cc" then
-    --set all the sliders + fm values
+    --set the sliders
     for i = 1,16 do
       sliders[i] = (params:get("vol" .. i))*32-1
-      fm_index_values[i] = params:get("fm_index" .. i)
-      bit_depth_values[i] = params:get("bit_depth" .. i)
-      smpl_rate_values[i] = params:get("smpl_rate" .. i)
       if sliders[i] > 32 then sliders[i] = 32 end
       if sliders[i] < 0 then sliders[i] = 0 end
     end
