@@ -19,7 +19,10 @@ local newSpeed = false
 local options = {}
 options.knobmodes = {"lfo", "val"}
 options.lfotypes = {"sin","saw","sqr","rnd"}
-local lfo = {{init=1, freq=1, counter=1, waveform=options.lfotypes[2], interpolator=1}}
+local lfo = {}
+for i=1,4 do
+  lfo[i] = {init=1, freq=1, counter=1, waveform=options.lfotypes[2], interpolator=1}
+end
 
 -- engine control vars
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
