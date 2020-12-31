@@ -64,6 +64,22 @@ engine.name = "Sines"
 MusicUtil = require "musicutil"
 
 function init()
+  startTime = util.time()
+  lfo_metro = metro.init()
+  lfo_metro.time = 0.01
+  lfo_metro.count = -10
+  lfo_metro.event = function()
+    currentTime = util.time()
+    lfo[1].counter = ((lfo[1].counter + (1*lfo[1].freq)))%100
+    lfo[1].ar = lfo[1].counter*0.64
+  end
+  lfo_metro:start()
+  local arc_redraw_metro = metro.init()
+  arc_redraw_metro.event = function()
+    arc_redraw()
+    redraw()
+  end
+  arc_redraw_metro:start(1 / framerate)
   print("loaded Sines engine")
   add_params()
   set_voices()
@@ -283,6 +299,19 @@ function key(n, z)
   end
   set_pan()
   redraw()
+end
+
+function arc_redraw()
+  local brightness
+  a:all(0)
+  if lfo[1].waveform ~= 'rnd'then
+    brightness = 15
+  else
+    brightness = 12
+  end
+  seg = lfo[1].ar/64
+  a:segment(1, seg*tau, tau*seg+0.2, brightness)
+  a:refresh()
 end
 
 function redraw()
