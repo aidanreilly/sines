@@ -34,6 +34,7 @@ local fm_index_values = {}
 local bit_depth_values = {}
 local smpl_rate_values = {}
 local edit = 1
+local current_env = "drone"
 local env_edit = 1
 local accum = 1
 local env_accum = 1
@@ -56,6 +57,7 @@ function init()
   print("loaded Sines engine")
   add_params()
   set_voices()
+  edit = 0
 end
 
 function add_params()
@@ -90,7 +92,6 @@ function add_params()
     params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
   end
   params:default()
-  edit = 0
 end
 
 function build_scale()
@@ -140,6 +141,8 @@ function set_voices()
     fm_index_values[i] = params:get("fm_index" .. i)
     smpl_rate_values[i] = params:get("smpl_rate" .. i)
     bit_depth_values[i] = params:get("bit_depth" .. i)
+    --set all voices to 0db
+    set_voice(i, 0)
   end
 end
 
@@ -150,12 +153,13 @@ function set_env(synth_num, env_num)
       engine.env_bias(synth_num - 1, envs[i][2])
       engine.amp_atk(synth_num - 1, envs[i][3])
       engine.amp_rel(synth_num - 1, envs[i][4])
-      env_edit = env_num
-      env_values[synth_num] = env_types[env_edit]
-      print (env_values[synth_num])
       redraw()
     end
   end
+  env_edit = env_num
+  env_values[synth_num] = env_types[env_edit]
+  current_env = env_values[synth_num]
+  print (env_values[synth_num])
 end
 
 function set_freq(synth_num, value)
@@ -166,22 +170,6 @@ end
 
 function set_synth_pan(synth_num, value)
   engine.pan(synth_num - 1, value)
-end
-
---update when a cc change is detected
-m = midi.connect()
-m.event = function(data)
-  redraw()
-  local d = midi.to_msg(data)
-  if d.type == "cc" then
-    --set the sliders
-    for i = 1,16 do
-      sliders[i] = (params:get("vol" .. i))*32-1
-      if sliders[i] > 32 then sliders[i] = 32 end
-      if sliders[i] < 0 then sliders[i] = 0 end
-    end
-  end
-  redraw()
 end
 
 function set_pan()
@@ -294,6 +282,11 @@ function redraw()
   screen.aa(1)
   screen.line_width(2.0)
   screen.clear()
+  for i = 1,16 do
+    sliders[i] = (params:get("vol" .. i))*32-1
+    if sliders[i] > 32 then sliders[i] = 32 end
+    if sliders[i] < 0 then sliders[i] = 0 end
+  end
 
   for i= 0, 15 do
     if i == edit then
