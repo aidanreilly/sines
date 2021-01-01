@@ -159,7 +159,7 @@ function set_env(synth_num, env_num)
   env_edit = env_num
   env_values[synth_num] = env_types[env_edit]
   current_env = env_values[synth_num]
-  print (env_values[synth_num])
+  --print (env_values[synth_num])
 end
 
 function set_freq(synth_num, value)
