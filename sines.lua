@@ -34,7 +34,6 @@ local fm_index_values = {}
 local bit_depth_values = {}
 local smpl_rate_values = {}
 local edit = 1
-local current_env = "drone"
 local env_edit = 1
 local accum = 1
 local env_accum = 1
@@ -158,8 +157,8 @@ function set_env(synth_num, env_num)
   end
   env_edit = env_num
   env_values[synth_num] = env_types[env_edit]
-  current_env = env_values[synth_num]
-  --print (env_values[synth_num])
+  print (env_values[synth_num])
+  redraw()
 end
 
 function set_freq(synth_num, value)
