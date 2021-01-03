@@ -150,8 +150,9 @@ function set_voices()
 end
 
 function set_env(synth_num, env_num)
-  --goofy way to loop through the envs list, but whatever
-  for i = 1,16 do
+  -- goofy way to loop through the envs list, but whatever
+  -- goofy but it works :)
+  for i = 1,17 do
     if envs[i][1] == env_num then
       engine.env_bias(synth_num - 1, envs[i][2])
       engine.amp_atk(synth_num - 1, envs[i][3])
@@ -242,18 +243,18 @@ function a.delta(n,delta)
     -- we need seconds per cycle for the envelope
     -- and we need polarity of the LED ring
     if lfo[n].freq > 0 then
-      envs[8][3] = 0.001
-      envs[8][4] = 1 / lfo[n].freq
+      envs[17][3] = 0.001
+      envs[17][4] = 1 / lfo[n].freq
     else
-      envs[8][4] = 0.001
-      envs[8][3] = math.abs(1 / lfo[n].freq)
+      envs[17][4] = 0.001
+      envs[17][3] = math.abs(1 / lfo[n].freq)
     end
-    set_env(voice, 8)
+    set_env(voice, 17)
   end
   lfo[n].interpolater = 1
   lastTouched = n
   arcDirty = true
-  tabutil.print(envs[8])
+  -- tabutil.print(envs[17])
   -- print(lfo[n].counter)
 end
 
