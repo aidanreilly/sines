@@ -10,32 +10,15 @@
 -- K1 + E2 - change sample rate
 -- K1 + E3 - change bit depth
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-local env_types = {"drone", "am1", "am2", "am3", "pulse1", "pulse2", "pulse3", "pulse4", "ramp1", "ramp2", "ramp3", "ramp4", "evolve1", "evolve2", "evolve3", "evolve4"}
--- env_num, env_bias, attack, decay. bias of 1.0 is used to create a static drone
-local envs = {{1, 1.0, 1.0, 1.0},--drone
-{2, 0.0, 0.001, 0.01},--am1
-{3, 0.0, 0.001, 0.02},--am2
-{4, 0.0, 0.001, 0.05},--am3
-{5, 0.0, 0.001, 0.1},--pulse1
-{6, 0.0, 0.001, 0.2},--pulse2
-{7, 0.0, 0.001, 0.5},--pulse3
-{8, 0.0, 0.001, 0.8},--pulse4
-{9, 0.0, 1.5, 0.01},--ramp1
-{10, 0.0, 2.0, 0.01},--ramp2
-{11, 0.0, 3.0, 0.01},--ramp3
-{12, 0.0, 4.0, 0.01},--ramp4
-{13, 0.3, 10.0, 10.0},--evolve1
-{14, 0.3, 15.0, 11.0},--evolve2
-{15, 0.3, 20.0, 12.0},--evolve3
-{16, 0.3, 25.0, 15.0}--evolve4
-}
-local env_values = {}
 local fm_index_values = {}
 local bit_depth_values = {}
 local smpl_rate_values = {}
+local attack_values = {}
+local decay_values = {}
+local env_bias_values = {}
 local edit = 1
-local env_edit = 1
 local accum = 1
+local env_edit = 1
 local env_accum = 1
 local step = 0
 local freq_increment = 0
@@ -69,28 +52,26 @@ function add_params()
   params:add{type = "number", id = "root_note", name = "root note",
     min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
   action = function() build_scale() end}
-  --set voice vol, fm, env, sample controls
+  --set voice controls
   for i = 1,16 do
-    params:add_control("vol" .. i, "voice " .. i .. " volume", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
-    params:set_action("vol" .. i, function(x) set_voice(i - 1, x) end)
-  end
-  for i = 1,16 do
-    params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.1, 200.0, 'lin', 0.1, 3.0))
-    params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
-  end
-  for i = 1,16 do
-    params:add_number("env" .. i, "envelope " .. i, 1, 16, 1)
-    params:set_action("env" .. i, function(x) set_env(i - 1, x) end)
-  end
-  for i = 1,16 do
-    params:add_number("smpl_rate" .. i, "sample rate " .. i, 4410, 44100, 44100)
-    params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
-  end
-  for i = 1,16 do
-    params:add_number("bit_depth" .. i, "bit depth " .. i, 1, 24, 24)
-    params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
+  	params:add_group("voice " .. i, 7)
+    params:add_control("vol" .. i, "volume " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
+    params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
+    params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(1, 200, 'lin', 1, 3))
+    params:set_action("fm_index" .. i, function(x) engine.fm_index(i - 1, x) end)
+  	params:add_control("attack" .. i, "attack " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
+    params:set_action("attack" .. i, function(x) engine.amp_atk(i - 1, x) end)
+    params:add_control("decay" .. i, "decay " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
+    params:set_action("decay" .. i, function(x) engine.amp_rel(i - 1, x) end)
+    params:add_control("env_bias" .. i, "env bias " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 1.0))
+    params:set_action("env_bias" .. i, function(x) engine.env_bias(i - 1, x) end)
+    params:add_control("bit_depth" .. i, "bit depth " .. i, controlspec.new(1, 24, 'lin', 1, 24, 'bits'))
+    params:set_action("bit_depth" .. i, function(x) engine.bit_depth(i - 1, x) end)
+    params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(4410, 44100, 'lin', 100, 44100,'hz'))
+    params:set_action("smpl_rate" .. i, function(x) engine.sample_rate(i - 1, x) end)
   end
   params:default()
+  params:bang()
 end
 
 function build_scale()
@@ -105,60 +86,16 @@ function build_scale()
   end
 end
 
-function set_voice(voice_num, value)
-  engine.vol(voice_num, value)
-  --also set the currently edited voice
-  edit = voice_num
-  redraw()
+function set_vol(synth_num, value)
+  engine.vol(synth_num, value)
+  edit = synth_num
 end
 
-function set_fm_index(voice_num, value)
-  engine.fm_index(voice_num, value)
-  fm_index_values[voice_num+1] = params:get("fm_index" .. voice_num+1)
-  edit = voice_num
-  redraw()
-end
-
-function set_sample_rate(voice_num, value)
-  engine.sample_rate(voice_num, value)
-  smpl_rate_values[voice_num+1] = params:get("smpl_rate" .. voice_num+1)
-  edit = voice_num
-  redraw()
-end
-
-function set_bit_depth(voice_num, value)
-  engine.bit_depth(voice_num, value)
-  bit_depth_values[voice_num+1] = params:get("bit_depth" .. voice_num+1)
-  edit = voice_num
-  redraw()
-end
 
 function set_voices()
   for i = 1,16 do
     cents_values[i] = 0
-    env_values[i] = env_types[params:get("env" .. i)]
-    fm_index_values[i] = params:get("fm_index" .. i)
-    smpl_rate_values[i] = params:get("smpl_rate" .. i)
-    bit_depth_values[i] = params:get("bit_depth" .. i)
-    --set all voices to 0db
-    set_voice(i, 0)
   end
-end
-
-function set_env(synth_num, env_num)
-  --goofy way to loop through the envs list, but whatever
-  for i = 1,16 do
-    if envs[i][1] == env_num then
-      engine.env_bias(synth_num - 1, envs[i][2])
-      engine.amp_atk(synth_num - 1, envs[i][3])
-      engine.amp_rel(synth_num - 1, envs[i][4])
-      redraw()
-    end
-  end
-  env_edit = env_num
-  env_values[synth_num] = env_types[env_edit]
-  print (env_values[synth_num])
-  redraw()
 end
 
 function set_freq(synth_num, value)
@@ -197,6 +134,27 @@ function set_pan()
   end
 end
 
+--update when a cc change is detected
+m = midi.connect()
+m.event = function(data)
+  redraw()
+  local d = midi.to_msg(data)
+  if d.type == "cc" then
+    --set all the sliders + fm values
+    for i = 1,16 do
+      sliders[i] = (params:get("vol" .. i))*32-1
+      if sliders[i] > 32 then sliders[i] = 32 end
+      if sliders[i] < 0 then sliders[i] = 0 end
+    end
+  end
+  --allow root note to be set from midi keyboard
+  if d.type == "note_on" then
+  	params:set("root_note", d.note)
+  end
+  redraw()
+end
+
+
 function enc(n, delta)
   if n == 1 then
     if key_1_pressed == 0 then 
@@ -210,11 +168,8 @@ function enc(n, delta)
       --edit is the slider number
       edit = accum
     elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
-      env_accum = (env_accum + delta) % 16
-      --env_edit is the env_values selector
-      env_edit = env_accum
-      --set the env
-      set_env(edit+1, env_edit+1)
+      params:set("attack" .. edit+1,  params:get("attack" .. edit+1) + delta * 0.1)
+      params:set("decay" .. edit+1,  params:get("decay" .. edit+1) + delta * 0.1)
     elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
       -- increment the note value with delta
       notes[edit+1] = notes[edit+1] + util.clamp(delta, -1, 1)
@@ -225,7 +180,6 @@ function enc(n, delta)
     elseif key_1_pressed == 1 and key_2_pressed == 0 and key_3_pressed == 0 then
       --set sample rate
       params:set("smpl_rate" .. edit+1, params:get("smpl_rate" .. edit+1) + (delta) * 1000)
-      smpl_rate_values[edit+1] = params:get("smpl_rate" .. edit+1)
     end
   elseif n == 3 then
     if key_1_pressed == 0 and key_3_pressed == 0 and key_2_pressed == 0 then
@@ -246,13 +200,11 @@ function enc(n, delta)
       cents_values[edit+1] = cents_increment
       set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)
     elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
-      -- set the index_slider value
-      params:set("fm_index" .. edit+1, params:get("fm_index" .. edit+1) + (delta) * 0.1)
-      fm_index_values[edit+1] = params:get("fm_index" .. edit+1)
+      -- set the fm value
+      params:set("fm_index" .. edit+1, params:get("fm_index" .. edit+1) + (delta))
     elseif key_1_pressed == 1  and key_2_pressed == 0 and key_3_pressed == 0 then
       --set bit depth
       params:set("bit_depth" .. edit+1, params:get("bit_depth" .. edit+1) + (delta))
-      bit_depth_values[edit+1] = params:get("bit_depth" .. edit+1)
     end
   end
   redraw()
@@ -281,11 +233,6 @@ function redraw()
   screen.aa(1)
   screen.line_width(2.0)
   screen.clear()
-  for i = 1,16 do
-    sliders[i] = (params:get("vol" .. i))*32-1
-    if sliders[i] > 32 then sliders[i] = 32 end
-    if sliders[i] < 0 then sliders[i] = 0 end
-  end
 
   for i= 0, 15 do
     if i == edit then
@@ -312,22 +259,22 @@ function redraw()
   screen.text(cents_values[edit+1] .. " cents")
   screen.move(0,12)
   screen.level(2)
-  screen.text("Env: ")
+  screen.text("Atk/Dec: ")
   screen.level(15)
-  screen.text(env_values[edit+1])
+  screen.text(params:get("attack" .. edit+1) .. "/" ..  params:get("decay" .. edit+1))
   screen.level(2)
-  screen.text(" FM Ind: ")
+  screen.text(" FM ind: ")
   screen.level(15)
-  screen.text(fm_index_values[edit+1])
+  screen.text(params:get("fm_index" .. edit+1))
   screen.move(0,19)
   screen.level(2)
   screen.text("Smpl rate: ")
   screen.level(15)
-  screen.text(smpl_rate_values[edit+1]/1000)
+  screen.text(params:get("smpl_rate" .. edit+1)/1000)
   screen.level(2)
   screen.text(" Bit dpt: ")
   screen.level(15)
-  screen.text(bit_depth_values[edit+1])
+  screen.text(params:get("bit_depth" .. edit+1))
   screen.move(0,26)
   screen.level(2)
   screen.text("Pan: ")
