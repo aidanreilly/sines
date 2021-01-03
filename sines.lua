@@ -230,19 +230,19 @@ end
 -- hardware functions
 
 function a.delta(n,delta)
+  -- PoC for all 4 channels controlling the first 4 odd voices
+  local voice = n + ( n - 1 )
   if lfo[n].interpolater == 1 then
     lfo[n].freq = lfo[n].freq + delta/50
     newSpeed = true
-    -- well this works, though the ring speed is cycles per second and env speed is seconds per cycle
-    -- because this function changes the decay. this seems like an envelope versus LFO problem
-    -- or can I just invert the function, whatever that means. I literally don't know right now.
-    envs[8][4] = lfo[n].freq
-    set_env(1, 8)
+    -- we need seconds per cycle for the envelope
+    envs[8][4] = 1 / lfo[n].freq
+    set_env(voice, 8)
   end
   lfo[n].interpolater = 1
   lastTouched = n
   arcDirty = true
-  tabutil.print(envs[8])
+  -- tabutil.print(envs[8])
 end
 
 function enc(n, delta)
