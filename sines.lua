@@ -20,9 +20,10 @@ local options = {}
 options.knobmodes = {"lfo", "val"}
 options.lfotypes = {"sin","saw","sqr","rnd"}
 local lfo = {}
-for i=1,4 do
+for i=1,16 do
   lfo[i] = {init=1, freq=1, counter=1, waveform=options.lfotypes[2], interpolator=1}
 end
+local voice_quad = 1
 
 -- engine control vars
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -232,15 +233,29 @@ end
 -- hardware functions
 
 function a.delta(n,delta)
-  -- PoC for all 4 channels controlling the first 4 odd voices
-  local voice = n + ( n - 1 )
+  -- gross, refactor plz, I'm tired of typing the number 1
+  local voice = 1
+  if voice_quad == 1 then
+    voice = edit + 1
+    print("voices one through four")
+  elseif voice_quad == 2 then
+    voice = edit + 1
+    print("voices five through eight")
+  elseif voice_quad == 3 then
+    voice = edit + 1
+    print("voices nine through 11")
+  elseif voice_quad == 4 then
+    voice = edit + 1
+    print("voices 12 through 16")
+  end
   if lfo[n].interpolater == 1 then
     lfo[n].freq = lfo[n].freq + delta/interp_divisor
     newSpeed = true
-    -- we need seconds per cycle for the envelope
-    -- and we need polarity of the LED ring
+    -- we need polarity of the LED ring
     if lfo[n].freq > 0 then
+      -- seventeen is a special arc envelope
       envs[17][3] = 0.001
+      -- we need seconds per cycle for the envelope
       envs[17][4] = 1 / lfo[n].freq
     else
       envs[17][4] = 0.001
@@ -251,8 +266,6 @@ function a.delta(n,delta)
   lfo[n].interpolater = 1
   lastTouched = n
   arcDirty = true
-  -- tabutil.print(envs[17])
-  -- print(lfo[n].counter)
 end
 
 function arc_redraw()
@@ -274,7 +287,6 @@ end
 function enc(n, delta)
   if n == 1 then
     params:delta('output_level', delta)
-
   elseif n == 2 then
     if key_2_pressed == 0 and key_3_pressed == 0 then
       --navigate up/down the list of sliders
@@ -282,6 +294,17 @@ function enc(n, delta)
       accum = (accum + delta) % 16
       --edit is the slider number
       edit = accum
+      -- this would be better with maths
+      if edit < 4 then
+        voice_quad = 1
+      elseif edit > 3 and edit < 8 then
+        voice_quad = 2
+      elseif edit > 7 and edit < 12 then
+        voice_quad = 3
+      elseif edit > 11 then
+        voice_quad = 4
+      end
+    print(edit + 1)
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
       env_accum = (env_accum + delta) % 16
       --env_edit is the env_values selector
