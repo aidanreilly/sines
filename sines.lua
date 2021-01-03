@@ -52,11 +52,13 @@ function add_params()
   params:add{type = "number", id = "root_note", name = "root note",
     min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
   action = function() build_scale() end}
-  --set voice controls
   for i = 1,16 do
-  	params:add_group("voice " .. i, 7)
-    params:add_control("vol" .. i, "volume " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
+  	params:add_control("vol" .. i, "volume " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
     params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
+  end
+  --set voice params
+  for i = 1,16 do
+  	params:add_group("voice " .. i .. " params", 6)
     params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(1, 200, 'lin', 1, 3))
     params:set_action("fm_index" .. i, function(x) engine.fm_index(i - 1, x) end)
   	params:add_control("attack" .. i, "attack " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
