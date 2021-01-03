@@ -151,7 +151,6 @@ end
 
 function set_env(synth_num, env_num)
   -- goofy way to loop through the envs list, but whatever
-  -- goofy but it works :)
   for i = 1,17 do
     if envs[i][1] == env_num then
       engine.env_bias(synth_num - 1, envs[i][2])
@@ -236,8 +235,6 @@ function a.delta(n,delta)
   -- PoC for all 4 channels controlling the first 4 odd voices
   local voice = n + ( n - 1 )
   if lfo[n].interpolater == 1 then
-    -- this value becomes negative when the LED indicator moves counterclockwise
-    -- watch out for divide by zero!
     lfo[n].freq = lfo[n].freq + delta/interp_divisor
     newSpeed = true
     -- we need seconds per cycle for the envelope
