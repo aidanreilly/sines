@@ -26,7 +26,7 @@ end
 
 -- engine control vars
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-local env_types = {"drone", "am1", "am2", "am3", "pulse1", "pulse2", "pulse3", "pulse4", "ramp1", "ramp2", "ramp3", "ramp4", "evolve1", "evolve2", "evolve3", "evolve4"}
+local env_types = {"drone", "am1", "am2", "am3", "pulse1", "pulse2", "pulse3", "pulse4", "ramp1", "ramp2", "ramp3", "ramp4", "evolve1", "evolve2", "evolve3", "evolve4", "arc"}
 -- env_num, env_bias, attack, decay. bias of 1.0 is used to create a static drone
 local envs = {{1, 1.0, 1.0, 1.0},--drone
 {2, 0.0, 0.001, 0.01},--am1
@@ -43,7 +43,8 @@ local envs = {{1, 1.0, 1.0, 1.0},--drone
 {13, 0.3, 10.0, 10.0},--evolve1
 {14, 0.3, 15.0, 11.0},--evolve2
 {15, 0.3, 20.0, 12.0},--evolve3
-{16, 0.3, 25.0, 15.0}--evolve4
+{16, 0.3, 25.0, 15.0},--evolve4
+{17, 0.0, 1.0, 1.0} -- arc
 }
 local env_values = {}
 local fm_index_values = {}
@@ -61,6 +62,7 @@ local key_2_pressed = 0
 local key_3_pressed = 0
 local toggle = false
 local pan_display = "m"
+local interp_divisor = 100
 
 
 engine.name = "Sines"
@@ -215,10 +217,10 @@ end
 -- helper functions
 
 function interpolate(old, new, n)
-  if lfo[n].interpolator == 0 then lfo[n].interpolator = 50 end
-  t = lfo[n].interpolator/50
-  if lfo[n].interpolater == 50 then newSpeed = false end
-  lfo[n].interpolater = (lfo[n].interpolater + 1) % 50
+  if lfo[n].interpolator == 0 then lfo[n].interpolator = interp_divisor end
+  t = lfo[n].interpolator/interp_divisor
+  if lfo[n].interpolater == interp_divisor then newSpeed = false end
+  lfo[n].interpolater = (lfo[n].interpolater + 1) % interp_divisor
 end
 
 function slew(old,new,t)
@@ -233,16 +235,42 @@ function a.delta(n,delta)
   -- PoC for all 4 channels controlling the first 4 odd voices
   local voice = n + ( n - 1 )
   if lfo[n].interpolater == 1 then
-    lfo[n].freq = lfo[n].freq + delta/50
+    -- this value becomes negative when the LED indicator moves counterclockwise
+    -- watch out for divide by zero!
+    lfo[n].freq = lfo[n].freq + delta/interp_divisor
     newSpeed = true
     -- we need seconds per cycle for the envelope
-    envs[8][4] = 1 / lfo[n].freq
+    -- and we need polarity of the LED ring
+    if lfo[n].freq > 0 then
+      envs[8][3] = 0.001
+      envs[8][4] = 1 / lfo[n].freq
+    else
+      envs[8][4] = 0.001
+      envs[8][3] = math.abs(1 / lfo[n].freq)
+    end
     set_env(voice, 8)
   end
   lfo[n].interpolater = 1
   lastTouched = n
   arcDirty = true
-  -- tabutil.print(envs[8])
+  tabutil.print(envs[8])
+  -- print(lfo[n].counter)
+end
+
+function arc_redraw()
+  local brightness
+  a:all(0)
+  for n = 1,4 do
+    if lfo[n].waveform ~= 'rnd'then
+      brightness = 15
+    else
+      brightness = 12
+    end
+    seg = lfo[n].ar/64
+    -- print(lfo[n].ar)
+    a:segment(n, seg*tau, tau*seg+0.2, brightness)
+  end
+  a:refresh()
 end
 
 function enc(n, delta)
@@ -310,21 +338,6 @@ function key(n, z)
   end
   set_pan()
   redraw()
-end
-
-function arc_redraw()
-  local brightness
-  a:all(0)
-  for i = 1,4 do
-    if lfo[i].waveform ~= 'rnd'then
-      brightness = 15
-    else
-      brightness = 12
-    end
-    seg = lfo[i].ar/64
-    a:segment(i, seg*tau, tau*seg+0.2, brightness)
-  end
-  a:refresh()
 end
 
 function redraw()
