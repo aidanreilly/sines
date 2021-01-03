@@ -61,7 +61,7 @@ function add_params()
   for i = 1,16 do
   	params:add_group("voice " .. i .. " params", 6)
     params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(1, 200, 'lin', 1, 3))
-    params:set_action("fm_index" .. i, function(x) engine.fm_index(i - 1, x) end)
+    params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
   	params:add_control("attack" .. i, "attack " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
     params:set_action("attack" .. i, function(x) engine.amp_atk(i - 1, x) end)
     params:add_control("decay" .. i, "decay " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
@@ -93,6 +93,15 @@ function set_vol(synth_num, value)
   engine.vol(synth_num, value)
   edit = synth_num
 end
+
+function set_fm_index(synth_num, value)
+  engine.fm_index(synth_num, value)
+  edit = synth_num
+  redraw()
+end
+
+--todo: set the other values so that they bang the gui
+
 
 
 function set_voices()
