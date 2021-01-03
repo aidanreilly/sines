@@ -63,15 +63,15 @@ function add_params()
     params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(1, 200, 'lin', 1, 3))
     params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
   	params:add_control("attack" .. i, "attack " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
-    params:set_action("attack" .. i, function(x) engine.amp_atk(i - 1, x) end)
+    params:set_action("attack" .. i, function(x) set_amp_atk(i - 1, x) end)
     params:add_control("decay" .. i, "decay " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
-    params:set_action("decay" .. i, function(x) engine.amp_rel(i - 1, x) end)
+    params:set_action("decay" .. i, function(x) set_amp_rel(i - 1, x) end)
     params:add_control("env_bias" .. i, "env bias " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 1.0))
-    params:set_action("env_bias" .. i, function(x) engine.env_bias(i - 1, x) end)
+    params:set_action("env_bias" .. i, function(x) set_env_bias(i - 1, x) end)
     params:add_control("bit_depth" .. i, "bit depth " .. i, controlspec.new(1, 24, 'lin', 1, 24, 'bits'))
-    params:set_action("bit_depth" .. i, function(x) engine.bit_depth(i - 1, x) end)
+    params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
     params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(4410, 44100, 'lin', 100, 44100,'hz'))
-    params:set_action("smpl_rate" .. i, function(x) engine.sample_rate(i - 1, x) end)
+    params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
   end
   params:default()
   params:bang()
@@ -100,9 +100,35 @@ function set_fm_index(synth_num, value)
   redraw()
 end
 
---todo: set the other values so that they bang the gui
+function set_amp_atk(synth_num, value)
+  engine.amp_atk(synth_num, value)
+  edit = synth_num
+  redraw()
+end
 
+function set_amp_rel(synth_num, value)
+  engine.amp_rel(synth_num, value)
+  edit = synth_num
+  redraw()
+end
 
+function set_env_bias(synth_num, value)
+  engine.env_bias(synth_num, value)
+  edit = synth_num
+  redraw()
+end
+
+function set_bit_depth(synth_num, value)
+  engine.bit_depth(synth_num, value)
+  edit = synth_num
+  redraw()
+end
+
+function set_sample_rate(synth_num, value)
+  engine.sample_rate(synth_num, value)
+  edit = synth_num
+  redraw()
+end
 
 function set_voices()
   for i = 1,16 do
