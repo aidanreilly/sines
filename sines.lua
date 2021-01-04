@@ -233,7 +233,9 @@ end
 -- hardware functions
 
 function a.delta(n,delta)
-  -- gross, refactor plz, I'm tired of typing the numbers
+  -- gross, refactor plz, I'm tired of typing the numbers.
+  -- this seems like a maths thing. something about a vector of 16
+  -- into a 4x4 matrix? Computer, do what I say in English, not Lua
   local voice = 1
   if voice_quad == 1 then
     voice = n
@@ -244,22 +246,22 @@ function a.delta(n,delta)
   elseif voice_quad == 4 then
     voice = n + 12
   end
-  if lfo[n].interpolater == 1 then
-    lfo[n].freq = lfo[n].freq + delta/interp_divisor
+  if lfo[voice].interpolater == 1 then
+    lfo[voice].freq = lfo[voice].freq + delta/interp_divisor
     newSpeed = true
     -- we need polarity of the LED ring
-    if lfo[n].freq > 0 then
+    if lfo[voice].freq > 0 then
       -- seventeen is a special arc envelope
       envs[17][3] = 0.001
       -- we need seconds per cycle for the envelope
-      envs[17][4] = 1 / lfo[n].freq
+      envs[17][4] = 1 / lfo[voice].freq
     else
       envs[17][4] = 0.001
-      envs[17][3] = math.abs(1 / lfo[n].freq)
+      envs[17][3] = math.abs(1 / lfo[voice].freq)
     end
     set_env(voice, 17)
   end
-  lfo[n].interpolater = 1
+  lfo[voice].interpolater = 1
   lastTouched = n
   arcDirty = true
 end
