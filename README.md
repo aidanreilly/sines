@@ -32,3 +32,4 @@ Saving a pset saves the note selection and midi mapping. The last saved pset is 
 
 Control individual sine amplitude, envelope type, and FM index with norns or a midi controller. Controls are mapped from the norns parameters page.
 
+Attach an Arc and watch the envelopes spin! Knobs control speed and direction, LED indicates oscillations. 16 voices are addressable by scrolling enc2 on norns in groups of four.
