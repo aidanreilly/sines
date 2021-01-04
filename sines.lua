@@ -18,6 +18,7 @@ local startTime
 local tau = math.pi * 2
 local newSpeed = false
 local options = {}
+-- sort of overloading #lfo as a synonym for voices. Great start?
 local lfo = {}
 for i=1,16 do
   lfo[i] = {init=1, freq=1, counter=1, interpolator=1}
@@ -75,7 +76,7 @@ function init()
   lfo_metro.count = -10
   lfo_metro.event = function()
     currentTime = util.time()
-    for i = 1,16 do
+    for i = 1,#lfo do
       lfo[i].counter = ((lfo[i].counter + (1*lfo[i].freq)))%100
       lfo[i].ar = lfo[i].counter*0.64
     end
@@ -103,16 +104,16 @@ function add_params()
     min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
   action = function() build_scale() end}
   --set voice vol, fm, env controls
-  for i = 1,16 do
+  for i = 1,#lfo do
     params:add_control("vol" .. i, "voice " .. i .. " volume", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
     params:set_action("vol" .. i, function(x) set_voice(i - 1, x) end)
   end
-  for i = 1,16 do
+  for i = 1,#lfo do
     params:add_control("fm_index" .. i, "fm_index " .. i, controlspec.new(0.1, 100.0, 'lin', 0.1, 3.0))
     params:set_action("fm_index" .. i, function(x) engine.fm_index(i - 1, x) end)
   end
-  for i = 1,16 do
-    params:add_number("env" .. i, "env " .. i, 1, 16, 1)
+  for i = 1,#lfo do
+    params:add_number("env" .. i, "env " .. i, 1, #lfo, 1)
     params:set_action("env" .. i, function(x) set_env(i, x) end)
   end
   params:default()
@@ -120,12 +121,12 @@ function add_params()
 end
 
 function build_scale()
-  notes = MusicUtil.generate_scale_of_length(params:get("root_note"), params:get("scale_mode"), 16)
-  local num_to_add = 16 - #notes
+  notes = MusicUtil.generate_scale_of_length(params:get("root_note"), params:get("scale_mode"), #lfo)
+  local num_to_add = #lfo - #notes
   for i = 1, num_to_add do
-    table.insert(notes, notes[16 - num_to_add])
+    table.insert(notes, notes[#lfo - num_to_add])
   end
-  for i = 1,16 do
+  for i = 1,#lfo do
     --also set notes
     set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
   end
@@ -138,7 +139,7 @@ function set_voice(voice_num, value)
 end
 
 function set_voices()
-  for i = 1,16 do
+  for i = 1,#lfo do
     cents_values[i] = 0
     env_values[i] = "drone"
     fm_index_values[i] = 3.0
@@ -151,7 +152,7 @@ end
 
 function set_env(synth_num, env_num)
   -- goofy way to loop through the envs list, but whatever
-  for i = 1,17 do
+  for i = 1,#env_types do
     if envs[i][1] == env_num then
       engine.env_bias(synth_num - 1, envs[i][2])
       engine.amp_atk(synth_num - 1, envs[i][3])
@@ -178,7 +179,7 @@ m.event = function(data)
   local d = midi.to_msg(data)
   if d.type == "cc" then
     --set all the sliders + fm values
-    for i = 1,16 do
+    for i = 1,#lfo do
       sliders[i] = (params:get("vol" .. i))*32-1
       fm_index_values[i] = params:get("fm_index" .. i)
       if sliders[i] > 32 then sliders[i] = 32 end
@@ -195,7 +196,7 @@ function set_pan()
     if toggle then
       pan_display = "l/r"
       --set hard l/r pan values
-      for i = 1,16 do
+      for i = 1,#lfo do
         if i % 2 == 0 then
           --even, pan right
           set_synth_pan(i,1)
@@ -207,7 +208,7 @@ function set_pan()
     end
     if not toggle then
       pan_display = "m"
-      for i = 1,16 do
+      for i = 1,#lfo do
         set_synth_pan(i,0)
       end
     end
@@ -235,7 +236,7 @@ function a.delta(n,delta)
     newSpeed = true
     -- we need polarity of the LED ring
     if lfo[voice].freq > 0 then
-      -- seventeen is a special arc envelope
+      -- seventeen is a special arc envelope, sorry I know magic numbers...
       envs[17][3] = 0.001
       -- we need seconds per cycle for the envelope
       envs[17][4] = 1 / lfo[voice].freq
