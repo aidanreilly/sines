@@ -10,18 +10,17 @@
 
 -- arc lfo control vars
 a = arc.connect()
-c = clock.set_source("internal")
+-- aspirational
+-- c = clock.set_source("midi")
 local framerate = 40
 local arcDirty = true
 local startTime
 local tau = math.pi * 2
 local newSpeed = false
 local options = {}
-options.knobmodes = {"lfo", "val"}
-options.lfotypes = {"sin","saw","sqr","rnd"}
 local lfo = {}
 for i=1,16 do
-  lfo[i] = {init=1, freq=1, counter=1, waveform=options.lfotypes[2], interpolator=1}
+  lfo[i] = {init=1, freq=1, counter=1, interpolator=1}
 end
 local voice_quad = 1
 
@@ -215,21 +214,6 @@ function set_pan()
   end
 end
 
--- helper functions
-
-function interpolate(old, new, n)
-  if lfo[n].interpolator == 0 then lfo[n].interpolator = interp_divisor end
-  t = lfo[n].interpolator/interp_divisor
-  if lfo[n].interpolater == interp_divisor then newSpeed = false end
-  lfo[n].interpolater = (lfo[n].interpolater + 1) % interp_divisor
-end
-
-function slew(old,new,t)
-  slewer = (slewer+1)%t
-  if slewer == 0 then slewer = t end
-  return old + ((new-old)*(slewer/t))
-end
-
 -- hardware functions
 
 function a.delta(n,delta)
@@ -275,16 +259,12 @@ function arc_redraw()
   for n = 1,4 do
     if voice_quad == 1 then
       seg = lfo[n].ar/64
-      foo = n
     elseif voice_quad == 2 then
       seg = lfo[n + 4].ar/64
-      foo = n + 4
     elseif voice_quad == 3 then
       seg = lfo[n + 8].ar/64
-      foo = n + 8
     elseif voice_quad == 4 then
       seg = lfo[n + 12].ar/64
-      foo = n + 12
     end
     a:segment(n, seg*tau, tau*seg+0.2, brightness)
   end
