@@ -76,7 +76,7 @@ function init()
   lfo_metro.count = -10
   lfo_metro.event = function()
     currentTime = util.time()
-    for i = 1,4 do
+    for i = 1,16 do
       lfo[i].counter = ((lfo[i].counter + (1*lfo[i].freq)))%100
       lfo[i].ar = lfo[i].counter*0.64
     end
@@ -233,20 +233,16 @@ end
 -- hardware functions
 
 function a.delta(n,delta)
-  -- gross, refactor plz, I'm tired of typing the number 1
+  -- gross, refactor plz, I'm tired of typing the numbers
   local voice = 1
   if voice_quad == 1 then
-    voice = edit + 1
-    print("voices one through four")
+    voice = n
   elseif voice_quad == 2 then
-    voice = edit + 1
-    print("voices five through eight")
+    voice = n + 4
   elseif voice_quad == 3 then
-    voice = edit + 1
-    print("voices nine through 11")
+    voice = n + 8
   elseif voice_quad == 4 then
-    voice = edit + 1
-    print("voices 12 through 16")
+    voice = n + 12
   end
   if lfo[n].interpolater == 1 then
     lfo[n].freq = lfo[n].freq + delta/interp_divisor
@@ -269,16 +265,10 @@ function a.delta(n,delta)
 end
 
 function arc_redraw()
-  local brightness
+  local brightness = 12
   a:all(0)
   for n = 1,4 do
-    if lfo[n].waveform ~= 'rnd'then
-      brightness = 15
-    else
-      brightness = 12
-    end
     seg = lfo[n].ar/64
-    -- print(lfo[n].ar)
     a:segment(n, seg*tau, tau*seg+0.2, brightness)
   end
   a:refresh()
@@ -304,7 +294,6 @@ function enc(n, delta)
       elseif edit > 11 then
         voice_quad = 4
       end
-    print(edit + 1)
     elseif key_2_pressed == 0 and key_3_pressed == 1 then
       env_accum = (env_accum + delta) % 16
       --env_edit is the env_values selector
