@@ -269,8 +269,23 @@ end
 function arc_redraw()
   local brightness = 12
   a:all(0)
+  -- there are 4 encoders and 16 lfos. Using the same voice_quad logic
+  -- as the encoder delta, determine what quadrant we are in before setting
+  -- the value of seg
   for n = 1,4 do
-    seg = lfo[n].ar/64
+    if voice_quad == 1 then
+      seg = lfo[n].ar/64
+      foo = n
+    elseif voice_quad == 2 then
+      seg = lfo[n + 4].ar/64
+      foo = n + 4
+    elseif voice_quad == 3 then
+      seg = lfo[n + 8].ar/64
+      foo = n + 8
+    elseif voice_quad == 4 then
+      seg = lfo[n + 12].ar/64
+      foo = n + 12
+    end
     a:segment(n, seg*tau, tau*seg+0.2, brightness)
   end
   a:refresh()
