@@ -10,12 +10,6 @@
 -- K1 + E2 - change sample rate
 -- K1 + E3 - change bit depth
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-local fm_index_values = {}
-local bit_depth_values = {}
-local smpl_rate_values = {}
-local attack_values = {}
-local decay_values = {}
-local env_bias_values = {}
 local edit = 1
 local accum = 1
 local env_edit = 1
@@ -54,17 +48,21 @@ function add_params()
   action = function() build_scale() end}
   --set vols
   for i = 1,16 do
-  	params:add_control("vol" .. i, "volume " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
+  	params:add_control("vol" .. i, "voice " .. i .. " vol", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
     params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
   end
   --set voice params
   for i = 1,16 do
-  	params:add_group("voice " .. i .. " params", 6)
+  	params:add_group("voice " .. i .. " params", 8)
+  	--params:add_number("note" .. i, "note " .. i, 0, 127, 60)
+  	params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
+    params:add_number("cents" .. i, "cents " .. i, 0, 100, 0)
+    params:set_action("cents" .. i, function(x) set_cents(i - 1, x) end)  	
     params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(1, 200, 'lin', 1, 3))
     params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
-  	params:add_control("attack" .. i, "attack " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
+  	params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
     params:set_action("attack" .. i, function(x) set_amp_atk(i - 1, x) end)
-    params:add_control("decay" .. i, "decay " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
+    params:add_control("decay" .. i, "env decay " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
     params:set_action("decay" .. i, function(x) set_amp_rel(i - 1, x) end)
     params:add_control("env_bias" .. i, "env bias " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 1.0))
     params:set_action("env_bias" .. i, function(x) set_env_bias(i - 1, x) end)
@@ -81,7 +79,7 @@ function build_scale()
   notes = MusicUtil.generate_scale_of_length(params:get("root_note"), params:get("scale_mode"), 16)
   local num_to_add = 16 - #notes
   for i = 1, num_to_add do
-    table.insert(notes, notes[16 - num_to_add])
+    params:set("note" .. i, notes[i])
   end
   for i = 1,16 do
     --also set notes
@@ -89,8 +87,40 @@ function build_scale()
   end
 end
 
+function set_note(synth_num, value)
+	notes[synth_num] = MusicUtil.note_num_to_freq(value)
+  engine.hz(synth_num, MusicUtil.note_num_to_freq(value))
+  engine.hz_lag(synth_num, 0.005)
+	edit = synth_num
+	redraw()
+end
+
+function set_freq(synth_num, value)
+  engine.hz(synth_num, MusicUtil.note_num_to_freq(value))
+  engine.hz_lag(synth_num, 0.005)
+	edit = synth_num
+	redraw()
+end
+
 function set_vol(synth_num, value)
   engine.vol(synth_num, value)
+  edit = synth_num
+end
+
+function set_cents(synth_num, value)
+	value = params:get("cents" .. synth_num+1) + value
+	value = value * 0.1
+	--argh this is goofy af
+  --set cents values in 0.1 increments
+  -- increment the current note freq
+  freq_increment = freq_increment + value
+  -- calculate increase in cents
+  -- https://music.stackexchange.com/questions/17566/how-to-calculate-the-difference-in-cents-between-a-note-and-an-arbitrary-frequen
+  cents_increment = 3986*math.log((MusicUtil.note_num_to_freq(notes[synth_num]) + freq_increment)/(MusicUtil.note_num_to_freq(notes[synth_num])))
+  -- round down to 2 dec points
+  cents_increment = math.floor((cents_increment) * 10 / 10)
+  engine.hz(synth_num, MusicUtil.note_num_to_freq(notes[synth_num]) + freq_increment)
+  engine.hz_lag(synth_num, 0.005)
   edit = synth_num
 end
 
@@ -137,7 +167,7 @@ function set_voices()
 end
 
 function set_freq(synth_num, value)
-  engine.hz(synth_num - 1, value)
+  engine.hz(synth_num - 1, MusicUtil.note_num_to_freq(value))
   engine.hz_lag(synth_num - 1, 0.005)
   redraw()
 end
@@ -205,20 +235,21 @@ function enc(n, delta)
       accum = (accum + delta) % 16
       --edit is the slider number
       edit = accum
+
     elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
       params:set("attack" .. edit+1,  params:get("attack" .. edit+1) + delta * 0.1)
       params:set("decay" .. edit+1,  params:get("decay" .. edit+1) + delta * 0.1)
+
     elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
       -- increment the note value with delta
-      notes[edit+1] = notes[edit+1] + util.clamp(delta, -1, 1)
-      set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]))
-      cents_values[edit+1] = 0
-      cents_increment = 0
-      freq_increment = 0
+      params:set("note" .. edit+1,  params:get("note" .. edit+1) + delta)
+      params:set("cents" .. edit+1, 0)
+
     elseif key_1_pressed == 1 and key_2_pressed == 0 and key_3_pressed == 0 then
       --set sample rate
       params:set("smpl_rate" .. edit+1, params:get("smpl_rate" .. edit+1) + (delta) * 1000)
     end
+
   elseif n == 3 then
     if key_1_pressed == 0 and key_3_pressed == 0 and key_2_pressed == 0 then
       --set the slider value
@@ -227,22 +258,18 @@ function enc(n, delta)
       params:set("vol" .. edit+1, amp_value)
       if sliders[edit+1] > 32 then sliders[edit+1] = 32 end
       if sliders[edit+1] < 0 then sliders[edit+1] = 0 end
+
     elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
-      -- increment the current note freq
-      freq_increment = freq_increment + util.clamp(delta, -1, 1) * 0.1
-      -- calculate increase in cents
-      -- https://music.stackexchange.com/questions/17566/how-to-calculate-the-difference-in-cents-between-a-note-and-an-arbitrary-frequen
-      cents_increment = 3986*math.log((MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)/(MusicUtil.note_num_to_freq(notes[edit+1])))
-      -- round down to 2 dec points
-      cents_increment = math.floor((cents_increment) * 10 / 10)
-      cents_values[edit+1] = cents_increment
-      set_freq(edit+1, MusicUtil.note_num_to_freq(notes[edit+1]) + freq_increment)
+    	--set the cents value to increment by
+    	params:set("cents" .. edit+1, params:get("cents" .. edit+1) + delta)
+
     elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
       -- set the fm value
-      params:set("fm_index" .. edit+1, params:get("fm_index" .. edit+1) + (delta))
+      params:set("fm_index" .. edit+1, params:get("fm_index" .. edit+1) + delta)
+
     elseif key_1_pressed == 1  and key_2_pressed == 0 and key_3_pressed == 0 then
       --set bit depth
-      params:set("bit_depth" .. edit+1, params:get("bit_depth" .. edit+1) + (delta))
+      params:set("bit_depth" .. edit+1, params:get("bit_depth" .. edit+1) + delta)
     end
   end
   redraw()
@@ -290,11 +317,11 @@ function redraw()
   screen.level(2)
   screen.text("Note: ")
   screen.level(15)
-  screen.text(MusicUtil.note_num_to_name(notes[edit+1],true) .. " ")
+  screen.text(MusicUtil.note_num_to_name(params:get("note" .. edit+1), true) .. " ")
   screen.level(2)
   screen.text("Detune: ")
   screen.level(15)
-  screen.text(cents_values[edit+1] .. " cents")
+  screen.text(params:get("cents" .. edit+1))
   screen.move(0,12)
   screen.level(2)
   screen.text("Atk/Dec: ")
