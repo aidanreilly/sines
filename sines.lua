@@ -89,127 +89,128 @@ function build_scale()
     --also set notes
     --set_freq(i, params:get("note" .. i))
     --end
-  end
+end
 
-  function set_freq(synth_num, value)
-    engine.hz(synth_num, MusicUtil.note_num_to_freq(value))
-    engine.hz_lag(synth_num, 0.005)
-    edit = synth_num
-    redraw()
-  end
+function set_freq(synth_num, value)
+  engine.hz(synth_num, MusicUtil.note_num_to_freq(value))
+  engine.hz_lag(synth_num, 0.005)
+  edit = synth_num
+  redraw()
+end
 
-  function set_vol(synth_num, value)
-    engine.vol(synth_num, value)
-    edit = synth_num
-  end
+function set_vol(synth_num, value)
+  engine.vol(synth_num, value)
+  edit = synth_num
+end
 
-  function tune(synth_num, value)
+function tune(synth_num, value)
     --increase the hz from orig midi_note_to_freq value
     --calculate cents increase from midi note to new tuned value
     --output the cents value
     print (params:get("cents" .. synth_num))
+ end
 
-  function set_cents(synth_num, value)
-    value = params:get("cents" .. synth_num) + value
-    value = value * 0.1
-    --argh this is goofy af
-    --set cents values in 0.1 increments
-    -- increment the current note freq
-    freq_increment = freq_increment + value
-    -- calculate increase in cents
-    -- https://music.stackexchange.com/questions/17566/how-to-calculate-the-difference-in-cents-between-a-note-and-an-arbitrary-frequen
-    cents_increment = 3986*math.log((MusicUtil.note_num_to_freq(params:get("note" .. synth_num)) + freq_increment)/(MusicUtil.note_num_to_freq(notes[synth_num])))
-    -- round down to 2 dec points
-    cents_increment = math.floor((cents_increment) * 10 / 10)
-    engine.hz(synth_num, MusicUtil.note_num_to_freq(params:get("note" .. synth_num)) + freq_increment)
-    engine.hz_lag(synth_num, 0.005)
-    edit = synth_num
-  end
+function set_cents(synth_num, value)
+  value = params:get("cents" .. synth_num) + value
+  value = value * 0.1
+  --argh this is goofy af
+  --set cents values in 0.1 increments
+  -- increment the current note freq
+  freq_increment = freq_increment + value
+  -- calculate increase in cents
+  -- https://music.stackexchange.com/questions/17566/how-to-calculate-the-difference-in-cents-between-a-note-and-an-arbitrary-frequen
+  cents_increment = 3986*math.log((MusicUtil.note_num_to_freq(params:get("note" .. synth_num)) + freq_increment)/(MusicUtil.note_num_to_freq(notes[synth_num])))
+  -- round down to 2 dec points
+  cents_increment = math.floor((cents_increment) * 10 / 10)
+  engine.hz(synth_num, MusicUtil.note_num_to_freq(params:get("note" .. synth_num)) + freq_increment)
+  engine.hz_lag(synth_num, 0.005)
+  edit = synth_num
+end
 
-  function set_fm_index(synth_num, value)
-    engine.fm_index(synth_num, value)
-    edit = synth_num
-    redraw()
-  end
+function set_fm_index(synth_num, value)
+  engine.fm_index(synth_num, value)
+  edit = synth_num
+  redraw()
+end
 
-  function set_amp_atk(synth_num, value)
-    engine.amp_atk(synth_num, value)
-    edit = synth_num
-    redraw()
-  end
+function set_amp_atk(synth_num, value)
+  engine.amp_atk(synth_num, value)
+  edit = synth_num
+  redraw()
+end
 
-  function set_amp_rel(synth_num, value)
-    engine.amp_rel(synth_num, value)
-    edit = synth_num
-    redraw()
-  end
+function set_amp_rel(synth_num, value)
+  engine.amp_rel(synth_num, value)
+  edit = synth_num
+  redraw()
+end
 
-  function set_env_bias(synth_num, value)
-    engine.env_bias(synth_num, value)
-    edit = synth_num
-    redraw()
-  end
+function set_env_bias(synth_num, value)
+  engine.env_bias(synth_num, value)
+  edit = synth_num
+  redraw()
+end
 
-  function set_bit_depth(synth_num, value)
-    engine.bit_depth(synth_num, value)
-    edit = synth_num
-    redraw()
-  end
+function set_bit_depth(synth_num, value)
+  engine.bit_depth(synth_num, value)
+  edit = synth_num
+  redraw()
+end
 
-  function set_sample_rate(synth_num, value)
-    engine.sample_rate(synth_num, value)
-    edit = synth_num
-    redraw()
-  end
+function set_sample_rate(synth_num, value)
+  engine.sample_rate(synth_num, value)
+  edit = synth_num
+  redraw()
+end
 
-  function set_synth_pan(synth_num, value)
-    engine.pan(synth_num - 1, value)
-  end
+function set_synth_pan(synth_num, value)
+  engine.pan(synth_num - 1, value)
+end
 
-  function set_pan()
-    -- pan position on the bus, -1 is left, 1 is right
-    if key_2_pressed == 1 and key_3_pressed == 1 then
-      toggle = not toggle
-      if toggle then
-        pan_display = "l/r"
-        --set hard l/r pan values
-        for i = 1,16 do
-          if i % 2 == 0 then
-            --even, pan right
-            set_synth_pan(i,1)
-          elseif i % 2 == 1 then
-            --odd, pan left
-            set_synth_pan(i,-1)
-          end
-        end
-      end
-      if not toggle then
-        pan_display = "m"
-        for i = 1,16 do
-          set_synth_pan(i,0)
+function set_pan()
+  -- pan position on the bus, -1 is left, 1 is right
+  if key_2_pressed == 1 and key_3_pressed == 1 then
+    toggle = not toggle
+    if toggle then
+      pan_display = "l/r"
+      --set hard l/r pan values
+      for i = 1,16 do
+        if i % 2 == 0 then
+          --even, pan right
+          set_synth_pan(i,1)
+        elseif i % 2 == 1 then
+          --odd, pan left
+          set_synth_pan(i,-1)
         end
       end
     end
-  end
-
-  --update when a cc change is detected
-  m = midi.connect()
-  m.event = function(data)
-  redraw()
-  local d = midi.to_msg(data)
-  if d.type == "cc" then
-    --set all the sliders + fm values
-    for i = 1,16 do
-      sliders[i] = (params:get("vol" .. i))*32-1
-      if sliders[i] > 32 then sliders[i] = 32 end
-      if sliders[i] < 0 then sliders[i] = 0 end
+    if not toggle then
+      pan_display = "m"
+      for i = 1,16 do
+        set_synth_pan(i,0)
+      end
     end
   end
-  --allow root note to be set from midi keyboard
-  if d.type == "note_on" then
-    params:set("root_note", d.note)
+end
+
+--update when a cc change is detected
+m = midi.connect()
+m.event = function(data)
+redraw()
+local d = midi.to_msg(data)
+if d.type == "cc" then
+  --set all the sliders + fm values
+  for i = 1,16 do
+    sliders[i] = (params:get("vol" .. i))*32-1
+    if sliders[i] > 32 then sliders[i] = 32 end
+    if sliders[i] < 0 then sliders[i] = 0 end
   end
-  redraw()
+end
+--allow root note to be set from midi keyboard
+if d.type == "note_on" then
+  params:set("root_note", d.note)
+end
+redraw()
 end
 
 
