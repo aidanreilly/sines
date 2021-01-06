@@ -36,15 +36,6 @@ function init()
 end
 
 function add_params()
-  for i = 1, #MusicUtil.SCALES do
-    table.insert(scale_names, string.lower(MusicUtil.SCALES[i].name))
-  end
-  params:add{type = "option", id = "scale_mode", name = "scale mode",
-    options = scale_names, default = 5,
-  action = function() build_scale() end}
-  params:add{type = "number", id = "root_note", name = "root note",
-    min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
-  action = function() build_scale() end}
   --set vols
   for i = 1,16 do
     params:add_control("vol" .. i, "voice " .. i .. " vol", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
@@ -72,7 +63,17 @@ function add_params()
     params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(4410, 44100, 'lin', 100, 44100,'hz'))
     params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
   end
-  --params:default() bangs the note which may be the problem
+  --set the scale note values
+  for i = 1, #MusicUtil.SCALES do
+    table.insert(scale_names, string.lower(MusicUtil.SCALES[i].name))
+  end
+  params:add{type = "option", id = "scale_mode", name = "scale mode",
+    options = scale_names, default = 5,
+  action = function() build_scale() end}
+  params:add{type = "number", id = "root_note", name = "root note",
+    min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
+  action = function() build_scale() end}
+  --do we need params:default?
   --params:default()
   params:bang()
 end
@@ -84,11 +85,6 @@ function build_scale()
     --notes are midi note numbers
     params:set("note" .. i, notes[i])
   end
-  --don't need this cos its done when you params:set(note)
-  --for i = 1,16 do
-    --also set notes
-    --set_freq(i, params:get("note" .. i))
-    --end
 end
 
 function set_freq(synth_num, value)
