@@ -84,12 +84,14 @@ function build_scale()
   for i = 1, num_to_add do
     --notes are midi note numbers
     params:set("note" .. i, notes[i])
+    --need to reset the cents value
   end
 end
 
 function set_freq(synth_num, value)
   engine.hz(synth_num, MusicUtil.note_num_to_freq(value))
   engine.hz_lag(synth_num, 0.005)
+  --need to reset the cents value
   edit = synth_num
   redraw()
 end
