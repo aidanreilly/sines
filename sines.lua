@@ -107,6 +107,7 @@ function tune(synth_num, value)
     --increase the hz from orig midi_note_to_freq value
     --calculate cents increase from midi note to new tuned value
     --output the cents value
+    --this might need to pull the current note value to calculate the cents value
     print (params:get("cents" .. synth_num))
  end
 
