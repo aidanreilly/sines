@@ -48,8 +48,10 @@ function add_params()
     --maybe you don't need a set action here?
     --or maybe you just don't need the default?
     params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function() set_freq(i - 1, x) end}
-    params:add_number("cents" .. i, "cents " .. i, 0, 100, 0)
+    params:add_number("cents" .. i, "cents " .. i, 0, 200, 0)
     params:set_action("cents" .. i, function(x) tune(i, x) end)
+    -- argh
+    params:add_number("cents_detune" .. i, "cents detune " .. i, 0, 200, 0)
     params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(1, 200, 'lin', 1, 3))
     params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
     params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
@@ -102,13 +104,17 @@ function set_vol(synth_num, value)
 end
 
 function tune(synth_num, value)
-    --increase the hz from orig midi_note_to_freq value
-    --calculate cents increase from midi note to new tuned value
-    --output the cents value
-    --pull the current note value, increase the hz value, then calculate the cents difference between orig and new value
-    --e.g., for given two frequencies, 440Hz and 450Hz
-    --cents difference = 3986*log(450/440)= 38.9 cents
-    print (params:get("cents" .. synth_num))
+  --increase the hz from orig midi_note_to_freq value
+  --calculate cents increase from midi note to new tuned value
+  --output the cents value
+  --pull the current note value, increase the hz value, then calculate the cents difference between orig and new value
+  --e.g., for given two frequencies, 440Hz and 450Hz
+  --cents difference = 3986*log(450/440)= 38.9 cents
+  local hz_value = MusicUtil.note_num_to_freq(value)
+  local hz_value_inc = hz_value + hz_value * params:get("cents" .. synth_num) * 0.1
+  local cents = 3986*math.log((hz_value+hz_value_inc)/hz_value)
+  set_freq(synth_num, hz_value_inc)
+  params:set("cents_detune" .. synth_num)
  end
 
 function set_cents(synth_num, value)
