@@ -104,6 +104,8 @@ function tune(synth_num, value)
     --calculate cents increase from midi note to new tuned value
     --output the cents value
     --this might need to pull the current note value to calculate the cents value
+    --E.G. for your given two frequencies, 440Hz and 450Hz
+    --Cents difference = 3986*log(450/440)= 38.9 cents
     print (params:get("cents" .. synth_num))
  end
 
