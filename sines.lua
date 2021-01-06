@@ -74,7 +74,7 @@ function add_params()
     min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
   action = function() build_scale() end}
   --do we need params:default?
-  --params:default()
+  params:default()
   params:bang()
 end
 
