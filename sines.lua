@@ -87,9 +87,9 @@ function build_scale()
 end
 
 function set_note(synth_num, value)
-	notes[synth_num] = value
-	--TODO need to reset the cents value here too
-	set_freq(synth_num, MusicUtil.note_num_to_freq(notes[synth_num]))
+  notes[synth_num] = value
+  --TODO need to reset the cents value here too
+  set_freq(synth_num, MusicUtil.note_num_to_freq(notes[synth_num]))
 end
 
 function set_freq(synth_num, value)
