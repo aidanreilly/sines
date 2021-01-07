@@ -17,7 +17,6 @@ local env_accum = 1
 local step = 0
 local freq_increment = 0
 local cents_increment = 0
-local cents_values = {}
 local scale_names = {}
 local notes = {}
 local key_1_pressed = 0
@@ -57,8 +56,6 @@ function add_params()
     params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
     params:add_number("cents" .. i, "cents " .. i, 0, 200, 0)
     params:set_action("cents" .. i, function(x) tune(i, x) end)
-    -- argh
-    --params:add_number("cents_detune" .. i, "cents detune " .. i, 0, 200, 0)
     params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(1, 200, 'lin', 1, 3))
     params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
     params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
@@ -72,7 +69,6 @@ function add_params()
     params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(4410, 44100, 'lin', 100, 44100,'hz'))
     params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
   end
-  --do we need params:default?
   params:default()
   params:bang()
 end
@@ -92,13 +88,14 @@ end
 
 function set_note(synth_num, value)
 	notes[synth_num] = value
+	--TODO need to reset the cents value here too
 	set_freq(synth_num, MusicUtil.note_num_to_freq(notes[synth_num]))
 end
 
 function set_freq(synth_num, value)
   engine.hz(synth_num, value)
   engine.hz_lag(synth_num, 0.005)
-  --need to reset the cents value
+  --TODO need to reset the cents value here too (?)
   edit = synth_num
   redraw()
 end
@@ -320,8 +317,7 @@ function redraw()
   screen.level(2)
   screen.text("Note: ")
   screen.level(15)
-  screen.text(MusicUtil.note_num_to_name(notes[edit+1],true) .. " ")
-  --screen.text(MusicUtil.note_num_to_name(params:get("note" .. edit+1), true) .. " ")
+  screen.text(MusicUtil.note_num_to_name(params:get("note" .. edit+1),true) .. " ")
   screen.level(2)
   screen.text("Detune: ")
   screen.level(15)
