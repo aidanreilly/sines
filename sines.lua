@@ -36,7 +36,17 @@ function init()
 end
 
 function add_params()
-  --set vols
+  --set the scale note values
+  for i = 1, #MusicUtil.SCALES do
+    table.insert(scale_names, string.lower(MusicUtil.SCALES[i].name))
+  end
+  params:add{type = "option", id = "scale_mode", name = "scale mode",
+    options = scale_names, default = 5,
+  action = function() build_scale() end}
+  params:add{type = "number", id = "root_note", name = "root note",
+    min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
+  action = function() build_scale() end}
+  --set voice vols
   for i = 1,16 do
     params:add_control("vol" .. i, "voice " .. i .. " vol", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
     params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
@@ -44,14 +54,11 @@ function add_params()
   --set voice params
   for i = 1,16 do
     params:add_group("voice " .. i .. " params", 8)
-    --params:add_number("note" .. i, "note " .. i, 0, 127, 60)
-    --maybe you don't need a set action here?
-    --or maybe you just don't need the default?
-    params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function() set_freq(i - 1, x) end}
+    params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
     params:add_number("cents" .. i, "cents " .. i, 0, 200, 0)
     params:set_action("cents" .. i, function(x) tune(i, x) end)
     -- argh
-    params:add_number("cents_detune" .. i, "cents detune " .. i, 0, 200, 0)
+    --params:add_number("cents_detune" .. i, "cents detune " .. i, 0, 200, 0)
     params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(1, 200, 'lin', 1, 3))
     params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
     params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
@@ -65,16 +72,6 @@ function add_params()
     params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(4410, 44100, 'lin', 100, 44100,'hz'))
     params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
   end
-  --set the scale note values
-  for i = 1, #MusicUtil.SCALES do
-    table.insert(scale_names, string.lower(MusicUtil.SCALES[i].name))
-  end
-  params:add{type = "option", id = "scale_mode", name = "scale mode",
-    options = scale_names, default = 5,
-  action = function() build_scale() end}
-  params:add{type = "number", id = "root_note", name = "root note",
-    min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
-  action = function() build_scale() end}
   --do we need params:default?
   params:default()
   params:bang()
@@ -84,14 +81,22 @@ function build_scale()
   notes = MusicUtil.generate_scale_of_length(params:get("root_note"), params:get("scale_mode"), 16)
   local num_to_add = 16 - #notes
   for i = 1, num_to_add do
-    --notes are midi note numbers
+    table.insert(notes, notes[16 - num_to_add])
+  end
+  for i = 1,16 do
+    --also set notes
     params:set("note" .. i, notes[i])
-    --need to reset the cents value
+    set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
   end
 end
 
+function set_note(synth_num, value)
+	notes[synth_num] = value
+	set_freq(synth_num, MusicUtil.note_num_to_freq(notes[synth_num]))
+end
+
 function set_freq(synth_num, value)
-  engine.hz(synth_num, MusicUtil.note_num_to_freq(value))
+  engine.hz(synth_num, value)
   engine.hz_lag(synth_num, 0.005)
   --need to reset the cents value
   edit = synth_num
@@ -114,7 +119,7 @@ function tune(synth_num, value)
   local hz_value_inc = hz_value + hz_value * params:get("cents" .. synth_num) * 0.1
   local cents = 3986*math.log((hz_value+hz_value_inc)/hz_value)
   set_freq(synth_num, hz_value_inc)
-  params:set("cents_detune" .. synth_num)
+  --params:set("cents_detune" .. synth_num)
  end
 
 function set_cents(synth_num, value)
@@ -315,7 +320,8 @@ function redraw()
   screen.level(2)
   screen.text("Note: ")
   screen.level(15)
-  screen.text(MusicUtil.note_num_to_name(params:get("note" .. edit+1), true) .. " ")
+  screen.text(MusicUtil.note_num_to_name(notes[edit+1],true) .. " ")
+  --screen.text(MusicUtil.note_num_to_name(params:get("note" .. edit+1), true) .. " ")
   screen.level(2)
   screen.text("Detune: ")
   screen.level(15)
