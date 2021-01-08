@@ -68,7 +68,7 @@ function add_params()
 		params:set_action("env_bias" .. i, function(x) set_env_bias(i - 1, x) end)
 		params:add_control("bit_depth" .. i, "bit depth " .. i, controlspec.new(1, 24, 'lin', 1, 24, 'bits'))
 		params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
-		params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(4410, 44100, 'lin', 100, 44100,'hz'))
+		params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(41, 44100, 'lin', 50, 44100,'hz'))
 		params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
 	end
 	params:default()
