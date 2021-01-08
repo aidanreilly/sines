@@ -15,10 +15,9 @@ local accum = 1
 local env_edit = 1
 local env_accum = 1
 local step = 0
-local freq_increment = 0
-local cents_increment = 0
-local scale_names = {}
+local cents = {}
 local notes = {}
+local scale_names = {}
 local key_1_pressed = 0
 local key_2_pressed = 0
 local key_3_pressed = 0
@@ -32,6 +31,9 @@ function init()
   print("loaded Sines engine")
   add_params()
   edit = 0
+  for i = 1,16 do
+  	cents[i] = params:get("cents" .. i)
+  end
 end
 
 function add_params()
@@ -54,8 +56,8 @@ function add_params()
   for i = 1,16 do
     params:add_group("voice " .. i .. " params", 8)
     params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
-    params:add_number("cents" .. i, "cents " .. i, 0, 200, 0)
-    params:set_action("cents" .. i, function(x) tune(i, x) end)
+    params:add_control("cents" .. i, "cents detune " .. i, controlspec.new(-200, 200, 'lin', 1, 0,'cents'))
+    params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
     params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(1, 200, 'lin', 1, 3))
     params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
     params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
@@ -89,7 +91,10 @@ end
 function set_note(synth_num, value)
 	notes[synth_num] = value
 	--TODO need to reset the cents value here too
+	params:set("cents" .. synth_num + 1, 0)
 	set_freq(synth_num, MusicUtil.note_num_to_freq(notes[synth_num]))
+  edit = synth_num
+  redraw()
 end
 
 function set_freq(synth_num, value)
@@ -106,35 +111,15 @@ function set_vol(synth_num, value)
 end
 
 function tune(synth_num, value)
-  --increase the hz from orig midi_note_to_freq value
-  --calculate cents increase from midi note to new tuned value
-  --output the cents value
-  --pull the current note value, increase the hz value, then calculate the cents difference between orig and new value
-  --e.g., for given two frequencies, 440Hz and 450Hz
-  --cents difference = 3986*log(450/440)= 38.9 cents
-  local hz_value = MusicUtil.note_num_to_freq(value)
-  local hz_value_inc = hz_value + hz_value * params:get("cents" .. synth_num) * 0.1
-  local cents = 3986*math.log((hz_value+hz_value_inc)/hz_value)
-  set_freq(synth_num, hz_value_inc)
-  --params:set("cents_detune" .. synth_num)
- end
-
-function set_cents(synth_num, value)
-  value = params:get("cents" .. synth_num) + value
-  value = value * 0.1
-  --argh this is goofy af
-  --set cents values in 0.1 increments
-  -- increment the current note freq
-  freq_increment = freq_increment + value
-  -- calculate increase in cents
-  -- https://music.stackexchange.com/questions/17566/how-to-calculate-the-difference-in-cents-between-a-note-and-an-arbitrary-frequen
-  cents_increment = 3986*math.log((MusicUtil.note_num_to_freq(params:get("note" .. synth_num)) + freq_increment)/(MusicUtil.note_num_to_freq(notes[synth_num])))
-  -- round down to 2 dec points
-  cents_increment = math.floor((cents_increment) * 10 / 10)
-  engine.hz(synth_num, MusicUtil.note_num_to_freq(params:get("note" .. synth_num)) + freq_increment)
-  engine.hz_lag(synth_num, 0.005)
+  --calculate new tuned value from cents value + midi note
+  --https://music.stackexchange.com/questions/17566/how-to-calculate-the-difference-in-cents-between-a-note-and-an-arbitrary-frequen
+  local detuned_freq = (math.pow(10, value/3986))*MusicUtil.note_num_to_freq(notes[synth_num])
+  --round to 2 decimal points
+  detuned_freq = math.floor((detuned_freq) * 10 / 10)
+  set_freq(synth_num, detuned_freq)
   edit = synth_num
-end
+  redraw()
+ end
 
 function set_fm_index(synth_num, value)
   engine.fm_index(synth_num, value)
@@ -174,6 +159,8 @@ end
 
 function set_synth_pan(synth_num, value)
   engine.pan(synth_num - 1, value)
+  edit = synth_num
+  redraw()
 end
 
 function set_pan()
@@ -242,8 +229,7 @@ function enc(n, delta)
 
     elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
       -- increment the note value with delta
-      params:set("note" .. edit+1,  params:get("note" .. edit+1) + delta)
-      params:set("cents" .. edit+1, 0)
+      params:set("note" .. edit+1, params:get("note" .. edit+1) + delta)
 
     elseif key_1_pressed == 1 and key_2_pressed == 0 and key_3_pressed == 0 then
       --set sample rate
