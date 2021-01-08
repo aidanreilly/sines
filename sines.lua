@@ -12,6 +12,8 @@
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local edit = 1
 local accum = 1
+local value = 0
+local text = " "
 local env_edit = 1
 local env_accum = 1
 local step = 0
@@ -33,6 +35,7 @@ function init()
 	edit = 0
 	for i = 1,16 do
 		cents[i] = params:get("cents" .. i)
+		params:set("vol" .. i, 0.0)
 	end
 end
 
@@ -47,28 +50,29 @@ function add_params()
 	params:add{type = "number", id = "root_note", name = "root note",
 		min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
 	action = function() build_scale() end}
-	--set voice vols
-	for i = 1,16 do
-		params:add_control("vol" .. i, "voice " .. i .. " vol", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
-		params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
-	end
 	--set voice params
 	for i = 1,16 do
-		params:add_group("voice " .. i .. " params", 8)
+		params:add_group("voice " .. i .. " params", 10)
+		--set voice vols
+		params:add_control("vol" .. i, "vol " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
+		params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
+		params:add_number("pan" .. i, "pan " .. i, -1.0, 1.0, 0.0)
+		params:set_action("pan" .. i, function(x) set_synth_pan(i - 1, x) end)
+		--params:add{type = "number", id = "pan" ..i, name = "pan " .. i, min = -1, max = 1, default = 0, formatter = function(param) return pan_formatter(param:get(), true) end, action = function(x) set_synth_pan(i - 1, x) end}
 		params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
 		params:add_control("cents" .. i, "cents detune " .. i, controlspec.new(-200, 200, 'lin', 1, 0,'cents'))
 		params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
-		params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(1, 200, 'lin', 1, 3))
+		params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(1.0, 200.0, 'lin', 1.0, 3.0))
 		params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
-		params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
+		params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
 		params:set_action("attack" .. i, function(x) set_amp_atk(i - 1, x) end)
-		params:add_control("decay" .. i, "env decay " .. i, controlspec.new(0.01, 15, 'lin', 0.01, 1.0,'s'))
+		params:add_control("decay" .. i, "env decay " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
 		params:set_action("decay" .. i, function(x) set_amp_rel(i - 1, x) end)
-		params:add_control("env_bias" .. i, "env bias " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 1.0))
+		params:add_control("env_bias" .. i, "env bias " .. i, controlspec.new(0.0, 1.0, 'lin', 0.1, 0.0))
 		params:set_action("env_bias" .. i, function(x) set_env_bias(i - 1, x) end)
 		params:add_control("bit_depth" .. i, "bit depth " .. i, controlspec.new(1, 24, 'lin', 1, 24, 'bits'))
 		params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
-		params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(41, 44100, 'lin', 50, 44100,'hz'))
+		params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(41.0, 44100.0, 'lin', 50.0, 44100.0,'hz'))
 		params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
 	end
 	params:default()
@@ -158,31 +162,45 @@ end
 
 function set_synth_pan(synth_num, value)
 	engine.pan(synth_num - 1, value)
-	edit = synth_num
+	--edit = synth_num
 	redraw()
 end
 
+function pan_formatter(value)
+	if value == 1 then
+		text = "right"
+	elseif value == 0 then
+		text = "middle"
+	elseif value == -1 then
+		text = "left"
+	end
+	return (text)
+end
+
+
 function set_pan()
-	-- pan position on the bus, -1 is left, 1 is right
+	-- pan position on the bus, -1 is left, 1 is right, 0 is center
 	if key_2_pressed == 1 and key_3_pressed == 1 then
 		toggle = not toggle
 		if toggle then
-			pan_display = "l/r"
 			--set hard l/r pan values
 			for i = 1,16 do
 				if i % 2 == 0 then
 					--even, pan right
-					set_synth_pan(i,1)
+					set_synth_pan(i-1,1.0)
+					params:set("pan" .. i, 1.0)
+
 				elseif i % 2 == 1 then
 					--odd, pan left
-					set_synth_pan(i,-1)
+					set_synth_pan(i-1,-1.0)
+					params:set("pan" .. i, -1.0)
 				end
 			end
 		end
 		if not toggle then
-			pan_display = "m"
 			for i = 1,16 do
-				set_synth_pan(i,0)
+				set_synth_pan(i-1,0.0)
+				params:set("pan" .. i, 0.0)
 			end
 		end
 	end
@@ -300,38 +318,38 @@ function redraw()
 	--display current values
 	screen.move(0,5)
 	screen.level(2)
-	screen.text("Note: ")
+	screen.text("note: ")
 	screen.level(15)
 	screen.text(MusicUtil.note_num_to_name(params:get("note" .. edit+1),true) .. " ")
 	screen.level(2)
-	screen.text("Detune: ")
+	screen.text("detune: ")
 	screen.level(15)
-	screen.text(params:get("cents" .. edit+1))
+	screen.text(params:get("cents" .. edit+1) .. " cents")
 	screen.move(0,12)
 	screen.level(2)
-	screen.text("Atk/Dec: ")
+	screen.text("atk/dec: ")
 	screen.level(15)
-	screen.text(params:get("attack" .. edit+1) .. "/" ..  params:get("decay" .. edit+1))
+	screen.text(params:get("attack" .. edit+1) .. "/" ..  params:get("decay" .. edit+1) .. " s")
 	screen.level(2)
-	screen.text(" FM ind: ")
+	screen.text(" fm: ")
 	screen.level(15)
 	screen.text(params:get("fm_index" .. edit+1))
 	screen.move(0,19)
 	screen.level(2)
-	screen.text("Smpl rate: ")
+	screen.text("smpl ate: ")
 	screen.level(15)
-	screen.text(params:get("smpl_rate" .. edit+1)/1000)
+	screen.text(params:get("smpl_rate" .. edit+1)/1000 .. "k")
 	screen.level(2)
-	screen.text(" Bit dpt: ")
+	screen.text(" bit dpt: ")
 	screen.level(15)
 	screen.text(params:get("bit_depth" .. edit+1))
 	screen.move(0,26)
 	screen.level(2)
-	screen.text("Pan: ")
+	screen.text("pan: ")
 	screen.level(15)
-	screen.text(pan_display)
+	screen.text(pan_formatter(params:get("pan" .. edit+1)))
 	screen.level(2)
-	screen.text(" Vol: ")
+	screen.text(" vol: ")
 	screen.level(15)
 	screen.text(math.floor((params:get('output_level')) * 10 / 10) .. " dB")
 	screen.update()

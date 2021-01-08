@@ -17,7 +17,7 @@ Engine_Sines : CroneEngine {
     var def = SynthDef.new(\sin, {
       arg out, vol=0.0, hz=220, hz_lag=0.005,
         env_bias=0.0, amp_atk=0.001, amp_rel=0.05,
-        pan=0, pan_lag=0.005, mul=1, modPartial=1, carPartial=1, fm_index=1, sample_rate=44100, bit_depth=24;
+        pan=0, pan_lag=0.005, mul=1, modPartial=1, carPartial=1, fm_index=1.0, sample_rate=44100.0, bit_depth=24;
       var mod, car, car_decimate, amp_, hz_, pan_;
       amp_ = EnvGen.ar(Env.circle([0, 1, 0], [amp_atk, amp_rel, 0.001]), levelBias: env_bias);
       hz_ = Lag.ar(K2A.ar(hz), hz_lag);
