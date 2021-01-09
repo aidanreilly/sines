@@ -13,7 +13,7 @@ local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local edit = 1
 local accum = 1
 local value = 0
-local text = " "
+local text = "middle"
 local env_edit = 1
 local env_accum = 1
 local step = 0
@@ -55,7 +55,7 @@ function add_params()
 		--set voice vols
 		params:add_control("vol" .. i, "vol " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
 		params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
-		params:add{type = "number", id = "pan" ..i, name = "pan " .. i, min = -1, max = 1, default = 0, action = function(x) set_synth_pan(i - 1, x) end}
+		params:add{type = "number", id = "pan" ..i, name = "pan " .. i, min = -1, max = 1, default = 0, formatter = function(param) return pan_formatter(param:get()) end, action = function(x) set_synth_pan(i - 1, x) end}
 		params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
 		params:add_control("cents" .. i, "cents detune " .. i, controlspec.new(-200, 200, 'lin', 1, 0,'cents'))
 		params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
