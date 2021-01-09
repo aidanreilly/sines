@@ -216,9 +216,9 @@ if d.type == "cc" then
 	end
 end
 --allow root note to be set from midi keyboard
-if d.type == "note_on" then
-	params:set("root_note", d.note)
-end
+--if d.type == "note_on" then
+	--params:set("root_note", d.note)
+--end
 redraw()
 end
 
