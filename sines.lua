@@ -158,7 +158,7 @@ function set_sample_rate(synth_num, value)
 end
 
 function set_synth_pan(synth_num, value)
-	engine.pan(synth_num - 1, value)
+	engine.pan(synth_num, value)
 	--edit = synth_num
 	redraw()
 end
