@@ -32,5 +32,5 @@ Saving a pset saves the note selection and midi mapping. The last saved pset is 
 
 ### Optional
 
-Control individual sine amplitude, envelope type, bit depth, sample rate, and FM index with a midi controller. Controls are mapped from the norns parameters page.
+Control individual sine amplitudes, envelopes, bit depth, sample rate, and FM index with a midi controller. Controls are mapped from the norns parameters page.
 
