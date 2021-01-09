@@ -24,7 +24,6 @@ local key_1_pressed = 0
 local key_2_pressed = 0
 local key_3_pressed = 0
 local toggle = false
-local pan_display = "m"
 
 engine.name = "Sines"
 MusicUtil = require "musicutil"
@@ -56,9 +55,7 @@ function add_params()
 		--set voice vols
 		params:add_control("vol" .. i, "vol " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
 		params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
-		params:add_number("pan" .. i, "pan " .. i, -1.0, 1.0, 0.0)
-		params:set_action("pan" .. i, function(x) set_synth_pan(i - 1, x) end)
-		--params:add{type = "number", id = "pan" ..i, name = "pan " .. i, min = -1, max = 1, default = 0, formatter = function(param) return pan_formatter(param:get(), true) end, action = function(x) set_synth_pan(i - 1, x) end}
+		params:add{type = "number", id = "pan" ..i, name = "pan " .. i, min = -1, max = 1, default = 0, action = function(x) set_synth_pan(i - 1, x) end}
 		params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
 		params:add_control("cents" .. i, "cents detune " .. i, controlspec.new(-200, 200, 'lin', 1, 0,'cents'))
 		params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
@@ -72,7 +69,7 @@ function add_params()
 		params:set_action("env_bias" .. i, function(x) set_env_bias(i - 1, x) end)
 		params:add_control("bit_depth" .. i, "bit depth " .. i, controlspec.new(1, 24, 'lin', 1, 24, 'bits'))
 		params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
-		params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(41.0, 44100.0, 'lin', 50.0, 44100.0,'hz'))
+		params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(480, 48000, 'lin', 100, 48000,'hz'))
 		params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
 	end
 	params:default()
@@ -179,31 +176,30 @@ end
 
 
 function set_pan()
-	-- pan position on the bus, -1 is left, 1 is right, 0 is center
-	if key_2_pressed == 1 and key_3_pressed == 1 then
-		toggle = not toggle
-		if toggle then
-			--set hard l/r pan values
-			for i = 1,16 do
-				if i % 2 == 0 then
-					--even, pan right
-					set_synth_pan(i-1,1.0)
-					params:set("pan" .. i, 1.0)
-
-				elseif i % 2 == 1 then
-					--odd, pan left
-					set_synth_pan(i-1,-1.0)
-					params:set("pan" .. i, -1.0)
-				end
-			end
-		end
-		if not toggle then
-			for i = 1,16 do
-				set_synth_pan(i-1,0.0)
-				params:set("pan" .. i, 0.0)
-			end
-		end
-	end
+  -- pan position on the bus, -1 is left, 1 is right
+  if key_2_pressed == 1 and key_3_pressed == 1 then
+    toggle = not toggle
+    if toggle then
+      --set hard l/r pan values
+      for i = 1,16 do
+        if i % 2 == 0 then
+          --even, pan right
+          set_synth_pan(i, 1)
+          params:set("pan" .. i, 1)
+        elseif i % 2 == 1 then
+          --odd, pan left
+          set_synth_pan(i, -1)
+          params:set("pan" .. i, -1)
+        end
+      end
+    end
+    if not toggle then
+      for i = 1,16 do
+        set_synth_pan(i, 0)
+        params:set("pan" .. i, 0)
+      end
+    end
+  end
 end
 
 --update when a cc change is detected
