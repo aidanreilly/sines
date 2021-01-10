@@ -1,4 +1,5 @@
---- ~ Sines v0.8 ~
+--- ~ sines ~
+-- @oootini
 -- E1 - norns volume
 -- E2 - select sine 1-16
 -- E3 - set sine amplitude
