@@ -59,7 +59,7 @@ function add_params()
 		params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
 		params:add_control("cents" .. i, "cents detune " .. i, controlspec.new(-200, 200, 'lin', 1, 0,'cents'))
 		params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
-		params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(1.0, 200.0, 'lin', 1.0, 3.0))
+		params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.0, 200.0, 'lin', 1.0, 3.0))
 		params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
 		params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
 		params:set_action("attack" .. i, function(x) set_amp_atk(i - 1, x) end)
@@ -216,9 +216,9 @@ if d.type == "cc" then
 	end
 end
 --allow root note to be set from midi keyboard
---if d.type == "note_on" then
-	--params:set("root_note", d.note)
---end
+--[[if d.type == "note_on" then
+	params:set("root_note", d.note)
+end]]
 redraw()
 end
 
