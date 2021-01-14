@@ -1,6 +1,6 @@
---- ~ sines ~
+--- ~ sines 0.8 ~
 -- @oootini
--- E1 - norns volume
+-- E1 - norns master volume
 -- E2 - select sine 1-16
 -- E3 - set sine amplitude
 -- K2 + E2 - change note
@@ -10,6 +10,7 @@
 -- K3 + E3 - change FM index
 -- K1 + E2 - change sample rate
 -- K1 + E3 - change bit depth
+
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local edit = 1
 local accum = 1
@@ -35,7 +36,7 @@ function init()
 	edit = 0
 	for i = 1,16 do
 		cents[i] = params:get("cents" .. i)
-		params:set("vol" .. i, 0.0)
+		sliders[i] = (params:get("vol" .. i))*32
 	end
 end
 
@@ -160,7 +161,6 @@ end
 
 function set_synth_pan(synth_num, value)
 	engine.pan(synth_num, value)
-	--edit = synth_num
 	redraw()
 end
 
@@ -210,12 +210,12 @@ m.event = function(data)
 	if d.type == "cc" then
 		--set all the sliders + fm values
 		for i = 1,16 do
-			sliders[i] = (params:get("vol" .. i))*32-1
+			sliders[i] = (params:get("vol" .. i))*32
 			if sliders[i] > 32 then sliders[i] = 32 end
 			if sliders[i] < 0 then sliders[i] = 0 end
 		end
 	end
-	--allow root note to be set from midi keyboard
+	--allow root note to be set from midi keyboard - doesn't work with multiple midi devices?
 	--[[if d.type == "note_on" then
 		params:set("root_note", d.note)
 	end]]

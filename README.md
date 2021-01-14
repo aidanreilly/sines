@@ -28,7 +28,7 @@ Controls:
 * [K1] + [E3] - change bit depth
 * [K2] + [K3] toggle voice pannning between 'middle' and odd numbered voices hard left, even numbered voices hard right. 
 
-Saving a pset saves the note selection and midi mapping. The last saved pset is loaded when the app launches. Change the root note from a connected midi keyboard.
+Saving a pset saves the note selection and midi mapping. The last saved pset is loaded when the app launches.
 
 ### Optional
 
