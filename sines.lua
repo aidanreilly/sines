@@ -228,7 +228,6 @@ m.event = function(data)
 	--allow root note to be set from midi keyboard - doesn't work with multiple midi devices?
 	if d.type == "note_on" then
 		params:set("root_note", d.note)
-		print (d.note)
 	end
 	redraw()
 end
