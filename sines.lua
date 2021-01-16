@@ -47,10 +47,10 @@ function add_params()
 	end
 	params:add{type = "option", id = "scale_mode", name = "scale mode",
 		options = scale_names, default = 5,
-	action = function() build_scale() end}
+	action = function() set_notes() end}
 	params:add{type = "number", id = "root_note", name = "root note",
 		min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
-	action = function() build_scale() end}
+	action = function() set_notes() end}
 	--set voice params
 	for i = 1,16 do
 		params:add_group("voice " .. i .. " params", 10)
@@ -84,10 +84,16 @@ function build_scale()
 	for i = 1, num_to_add do
 		table.insert(notes, notes[16 - num_to_add])
 	end
+end
+
+function set_notes()
+	build_scale()
 	for i = 1,16 do
-		--also set notes
+		--also reset the cents value here too
+		params:set("cents" .. i, 0)
+		engine.hz(i, MusicUtil.note_num_to_freq(notes[i]))
+		engine.hz_lag(i, 0.005)
 		params:set("note" .. i, notes[i])
-		set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
 	end
 end
 
