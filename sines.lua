@@ -26,6 +26,7 @@ local key_1_pressed = 0
 local key_2_pressed = 0
 local key_3_pressed = 0
 local toggle = false
+local scale_toggle = false
 
 engine.name = "Sines"
 MusicUtil = require "musicutil"
@@ -88,11 +89,8 @@ end
 
 function set_notes()
 	build_scale()
+	scale_toggle = true
 	for i = 1,16 do
-		--also reset the cents value here too
-		params:set("cents" .. i, 0)
-		engine.hz(i, MusicUtil.note_num_to_freq(notes[i]))
-		engine.hz_lag(i, 0.005)
 		params:set("note" .. i, notes[i])
 	end
 end
@@ -101,8 +99,14 @@ function set_note(synth_num, value)
 	notes[synth_num] = value
 	--also reset the cents value here too
 	params:set("cents" .. synth_num + 1, 0)
-	set_freq(synth_num, MusicUtil.note_num_to_freq(notes[synth_num]))
-	edit = synth_num
+	engine.hz(synth_num, MusicUtil.note_num_to_freq(notes[synth_num]))
+	engine.hz_lag(synth_num, 0.005)
+	if scale_toggle then
+		--do nothing
+	end
+	if not scale_toggle then
+		edit = synth_num
+	end
 	redraw()
 end
 
@@ -216,15 +220,16 @@ m.event = function(data)
 	if d.type == "cc" then
 		--set all the sliders + fm values
 		for i = 1,16 do
-			sliders[i] = (params:get("vol" .. i))*32
+			sliders[i] = (params:get("vol" .. i))*32 - 1
 			if sliders[i] > 32 then sliders[i] = 32 end
 			if sliders[i] < 0 then sliders[i] = 0 end
 		end
 	end
 	--allow root note to be set from midi keyboard - doesn't work with multiple midi devices?
-	--[[if d.type == "note_on" then
+	if d.type == "note_on" then
 		params:set("root_note", d.note)
-	end]]
+		print (d.note)
+	end
 	redraw()
 end
 
