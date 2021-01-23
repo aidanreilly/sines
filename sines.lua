@@ -14,10 +14,29 @@
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local edit = 1
 local accum = 1
-local value = 0
-local text = " "
+-- env_name, env_bias, attack, decay. bias of 1.0 is used to create a static drone
+local envs = {{"drone", 1.0, 1.0, 1.0},
+{"am1", 0.0, 0.01, 0.1},
+{"am2", 0.0, 0.01, 0.2},
+{"am3", 0.0, 0.01, 0.5},
+{"pulse1", 0.0, 0.01, 0.8},
+{"pulse2", 0.0, 0.01, 1.0},
+{"pulse3", 0.0, 0.01, 1.2},
+{"pulse4", 0.0, 0.01, 1.5},
+{"ramp1", 0.0, 1.5, 0.01},
+{"ramp2", 0.0, 2.0, 0.01},
+{"ramp3", 0.0, 3.0, 0.01},
+{"ramp4", 0.0, 4.0, 0.01},
+{"evolve1", 0.3, 10.0, 10.0},
+{"evolve2", 0.3, 15.0, 11.0},
+{"evolve3", 0.3, 20.0, 12.0},
+{"evolve4", 0.3, 25.0, 15.0}
+}
+local env_values = {}
 local env_edit = 1
 local env_accum = 1
+local value = 0
+local text = " "
 local step = 0
 local cents = {}
 local notes = {}
@@ -36,6 +55,7 @@ function init()
 	add_params()
 	edit = 0
 	for i = 1,16 do
+		env_values[i] = 1
 		cents[i] = params:get("cents" .. i)
 		sliders[i] = (params:get("vol" .. i))*32
 	end
@@ -131,6 +151,13 @@ function tune(synth_num, value)
 	set_freq(synth_num, detuned_freq)
 	edit = synth_num
 	redraw()
+end
+
+function set_env(synth_num, value)
+	--env_name, env_bias, attack, decay
+	params:set("env_bias" .. synth_num, envs[value][2])
+	params:set("attack" .. synth_num, envs[value][3])
+	params:set("decay" .. synth_num, envs[value][4])
 end
 
 function set_fm_index(synth_num, value)
@@ -247,8 +274,13 @@ function enc(n, delta)
 			edit = accum
 
 		elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
-			params:set("attack" .. edit+1,  params:get("attack" .. edit+1) + delta * 0.1)
-			params:set("decay" .. edit+1,  params:get("decay" .. edit+1) + delta * 0.1)
+      env_accum = (env_accum + delta) % 16
+      --env_edit is the env_values selector
+      env_edit = env_accum
+      --change the AD env values
+      env_values[edit+1] = env_edit+1  
+      --set the env
+      set_env(edit+1, env_edit+1)
 
 		elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
 			-- increment the note value with delta
@@ -333,11 +365,13 @@ function redraw()
 	screen.text(params:get("cents" .. edit+1) .. " cents")
 	screen.move(0,12)
 	screen.level(2)
-	screen.text("atk/dec: ")
+	screen.text("env: ")
 	screen.level(15)
-	screen.text(params:get("attack" .. edit+1) .. "/" ..  params:get("decay" .. edit+1) .. " s")
+	screen.text(envs[env_values[edit+1]][1])
+	--screen.text(envs[env_values[edit+1]][1])
+	--screen.text(params:get("attack" .. edit+1) .. "/" ..  params:get("decay" .. edit+1) .. " s")
 	screen.level(2)
-	screen.text(" fm: ")
+	screen.text(" fm index: ")
 	screen.level(15)
 	screen.text(params:get("fm_index" .. edit+1))
 	screen.move(0,19)
