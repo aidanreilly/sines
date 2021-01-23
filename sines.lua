@@ -84,10 +84,7 @@ function add_params()
 		params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
 		params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.0, 200.0, 'lin', 1.0, 3.0))
 		params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
-
 		params:add{type = "number", id = "env" ..i, name = "env " .. i, min = 1, max = 16, default = 1, formatter = function(param) return env_formatter(param:get()) end, action = function(x) set_env(i, x) end}
-
-
 		params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
 		params:set_action("attack" .. i, function(x) set_amp_atk(i - 1, x) end)
 		params:add_control("decay" .. i, "env decay " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
