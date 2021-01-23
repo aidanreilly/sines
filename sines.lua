@@ -55,7 +55,7 @@ function init()
 	add_params()
 	edit = 0
 	for i = 1,16 do
-		env_values[i] = 1
+		env_values[i] = params:get("env" .. i)
 		cents[i] = params:get("cents" .. i)
 		sliders[i] = (params:get("vol" .. i))*32
 	end
@@ -74,7 +74,7 @@ function add_params()
 	action = function() set_notes() end}
 	--set voice params
 	for i = 1,16 do
-		params:add_group("voice " .. i .. " params", 10)
+		params:add_group("voice " .. i .. " params", 11)
 		--set voice vols
 		params:add_control("vol" .. i, "vol " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
 		params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
@@ -84,6 +84,10 @@ function add_params()
 		params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
 		params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.0, 200.0, 'lin', 1.0, 3.0))
 		params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
+
+		params:add{type = "number", id = "env" ..i, name = "env " .. i, min = 1, max = 16, default = 1, formatter = function(param) return env_formatter(param:get()) end, action = function(x) set_env(i, x) end}
+
+
 		params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
 		params:set_action("attack" .. i, function(x) set_amp_atk(i - 1, x) end)
 		params:add_control("decay" .. i, "env decay " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
@@ -158,6 +162,11 @@ function set_env(synth_num, value)
 	params:set("env_bias" .. synth_num, envs[value][2])
 	params:set("attack" .. synth_num, envs[value][3])
 	params:set("decay" .. synth_num, envs[value][4])
+end
+
+function env_formatter(value)
+	local env_name = envs[value][1]
+	return (env_name)
 end
 
 function set_fm_index(synth_num, value)
@@ -274,13 +283,14 @@ function enc(n, delta)
 			edit = accum
 
 		elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
-      env_accum = (env_accum + delta) % 16
+			params:set("env" .. edit+1, params:get("env" .. edit+1) + delta)
+      --env_accum = (env_accum + delta) % 16
       --env_edit is the env_values selector
-      env_edit = env_accum
+      --env_edit = env_accum
       --change the AD env values
-      env_values[edit+1] = env_edit+1  
+      --env_values[edit+1] = env_edit+1  
       --set the env
-      set_env(edit+1, env_edit+1)
+      --set_env(edit+1, env_edit+1)
 
 		elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
 			-- increment the note value with delta
@@ -367,7 +377,7 @@ function redraw()
 	screen.level(2)
 	screen.text("env: ")
 	screen.level(15)
-	screen.text(envs[env_values[edit+1]][1])
+	screen.text(env_formatter(params:get("env" .. edit+1)))
 	--screen.text(envs[env_values[edit+1]][1])
 	--screen.text(params:get("attack" .. edit+1) .. "/" ..  params:get("decay" .. edit+1) .. " s")
 	screen.level(2)
