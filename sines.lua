@@ -11,6 +11,23 @@
 -- K1 + E2 - change sample rate
 -- K1 + E3 - change bit depth
 
+-- arc lfo control vars
+a = arc.connect()
+-- aspirational
+-- c = clock.set_source("midi")
+local framerate = 40
+local arcDirty = true
+local startTime
+local tau = math.pi * 2
+local newSpeed = false
+local options = {}
+local voices = 16
+local lfo = {}
+for i=1,voices do
+  lfo[i] = {init=1, freq=1, counter=1, interpolator=1}
+end
+local voice_quad = 1
+
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local edit = 1
 local accum = 1
@@ -30,8 +47,9 @@ local envs = {{"drone", 1.0, 1.0, 1.0},
 {"evolve1", 0.3, 10.0, 10.0},
 {"evolve2", 0.3, 15.0, 11.0},
 {"evolve3", 0.3, 20.0, 12.0},
-{"evolve4", 0.4, 25.0, 15.0}
-}
+{"evolve4", 0.4, 25.0, 15.0},
+{"arc", 0.0, 1.0, 1.0}}
+
 local env_values = {}
 local env_edit = 1
 local env_accum = 1
@@ -46,15 +64,34 @@ local key_2_pressed = 0
 local key_3_pressed = 0
 local toggle = false
 local scale_toggle = false
+local interp_divisor = 100
 
 engine.name = "Sines"
 MusicUtil = require "musicutil"
 
 function init()
+  startTime = util.time()
+  lfo_metro = metro.init()
+  lfo_metro.time = 0.01
+  lfo_metro.count = -10
+  lfo_metro.event = function()
+    currentTime = util.time()
+    for i = 1,#lfo do
+      lfo[i].counter = ((lfo[i].counter + (1*lfo[i].freq)))%100
+      lfo[i].ar = lfo[i].counter*0.64
+    end
+  end
+  lfo_metro:start()
+  local arc_redraw_metro = metro.init()
+  arc_redraw_metro.event = function()
+    arc_redraw()
+    redraw()
+  end
+  arc_redraw_metro:start(1 / framerate)
 	print("loaded Sines engine")
 	add_params()
 	edit = 0
-	for i = 1,16 do
+	for i = 1,voices do
 		env_values[i] = params:get("env" .. i)
 		cents[i] = params:get("cents" .. i)
 		sliders[i] = (params:get("vol" .. i))*32
@@ -73,7 +110,7 @@ function add_params()
 		min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
 	action = function() set_notes() end}
 	--set voice params
-	for i = 1,16 do
+	for i = 1,voices do
 		params:add_group("voice " .. i .. " params", 11)
 		--set voice vols
 		params:add_control("vol" .. i, "vol " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
@@ -84,7 +121,7 @@ function add_params()
 		params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
 		params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.0, 200.0, 'lin', 1.0, 3.0))
 		params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
-		params:add{type = "number", id = "env" ..i, name = "env " .. i, min = 1, max = 16, default = 1, formatter = function(param) return env_formatter(param:get()) end, action = function(x) set_env(i, x) end}
+		params:add{type = "number", id = "env" ..i, name = "env " .. i, min = 1, max = #envs, default = 1, formatter = function(param) return env_formatter(param:get()) end, action = function(x) set_env(i, x) end}
 		params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
 		params:set_action("attack" .. i, function(x) set_amp_atk(i - 1, x) end)
 		params:add_control("decay" .. i, "env decay " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
@@ -96,6 +133,10 @@ function add_params()
 		params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(480, 48000, 'lin', 100, 48000,'hz'))
 		params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
 	end
+  for i = 1,#lfo do
+    params:add_number("env" .. i, "env " .. i, 1, #lfo, 1)
+    params:set_action("env" .. i, function(x) set_env(i, x) end)
+  end
 	params:default()
 	params:bang()
 end
@@ -106,12 +147,16 @@ function build_scale()
 	for i = 1, num_to_add do
 		table.insert(notes, notes[16 - num_to_add])
 	end
+  for i = 1,#lfo do
+    --also set notes
+    set_freq(i, MusicUtil.note_num_to_freq(notes[i]))
+  end	
 end
 
 function set_notes()
 	build_scale()
 	scale_toggle = true
-	for i = 1,16 do
+	for i = 1,voices do
 		params:set("note" .. i, notes[i])
 	end
 end
@@ -155,10 +200,17 @@ function tune(synth_num, value)
 end
 
 function set_env(synth_num, value)
+    -- goofy way to loop through the envs list, but whatever
+  for i = 1,#envs do
+    if envs[i][1] == value then
 	--env_name, env_bias, attack, decay
-	params:set("env_bias" .. synth_num, envs[value][2])
-	params:set("attack" .. synth_num, envs[value][3])
-	params:set("decay" .. synth_num, envs[value][4])
+    	params:set("env_bias" .. synth_num - 1, envs[i][2])
+    	params:set("attack" .. synth_num - 1, envs[i][3])
+    	params:set("decay" .. synth_num - 1, envs[i][4])
+    end
+  end
+  env_edit = value
+  env_values[synth_num] = envs[env_edit] 	
 end
 
 function env_formatter(value)
@@ -225,7 +277,7 @@ function set_pan()
     toggle = not toggle
     if toggle then
       --set hard l/r pan values
-      for i = 1,16 do
+      for i = 1,voices do
         if i % 2 == 0 then
           --even, pan right
           set_synth_pan(i, 1)
@@ -238,7 +290,7 @@ function set_pan()
       end
     end
     if not toggle then
-      for i = 1,16 do
+      for i = 1,voices do
         set_synth_pan(i, 0)
         params:set("pan" .. i, 0)
       end
@@ -265,6 +317,60 @@ m.event = function(data)
 	redraw()
 end
 
+function a.delta(n,delta)
+  -- gross, refactor plz, I'm tired of typing the numbers.
+  -- this seems like a maths thing. something about a vector of 16
+  -- into a 4x4 matrix? Computer, do what I say in English, not Lua
+  local voice = 1
+  if voice_quad == 1 then
+    voice = n
+  elseif voice_quad == 2 then
+    voice = n + 4
+  elseif voice_quad == 3 then
+    voice = n + 8
+  elseif voice_quad == 4 then
+    voice = n + 12
+  end
+  if lfo[voice].interpolater == 1 then
+    lfo[voice].freq = lfo[voice].freq + delta/interp_divisor
+    newSpeed = true
+    -- we need polarity of the LED ring
+    if lfo[voice].freq > 0 then
+      -- seventeen is a special arc envelope, sorry I know magic numbers...
+      envs[17][3] = 0.001
+      -- we need seconds per cycle for the envelope
+      envs[17][4] = 1 / lfo[voice].freq
+    else
+      envs[17][4] = 0.001
+      envs[17][3] = math.abs(1 / lfo[voice].freq)
+    end
+    set_env(voice, 17)
+  end
+  lfo[voice].interpolater = 1
+  lastTouched = n
+  arcDirty = true
+end
+
+function arc_redraw()
+  local brightness = 12
+  a:all(0)
+  -- there are 4 encoders and 16 lfos. Using the same voice_quad logic
+  -- as the encoder delta, determine what quadrant we are in before setting
+  -- the value of seg
+  for n = 1,4 do
+    if voice_quad == 1 then
+      seg = lfo[n].ar/64
+    elseif voice_quad == 2 then
+      seg = lfo[n + 4].ar/64
+    elseif voice_quad == 3 then
+      seg = lfo[n + 8].ar/64
+    elseif voice_quad == 4 then
+      seg = lfo[n + 12].ar/64
+    end
+    a:segment(n, seg*tau, tau*seg+0.2, brightness)
+  end
+  a:refresh()
+end
 
 function enc(n, delta)
 	if n == 1 then
@@ -275,10 +381,19 @@ function enc(n, delta)
 		if key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 0 then
 			--navigate up/down the list of sliders
 			--accum wraps around 0-15
-			accum = (accum + delta) % 16
+			accum = (accum + delta) % #envs
 			--edit is the slider number
 			edit = accum
-
+      -- this would be better with maths
+      if edit < 4 then
+        voice_quad = 1
+      elseif edit > 3 and edit < 8 then
+        voice_quad = 2
+      elseif edit > 7 and edit < 12 then
+        voice_quad = 3
+      elseif edit > 11 then
+        voice_quad = 4
+      end
 		elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
 			params:set("env" .. edit+1, params:get("env" .. edit+1) + delta)
       --env_accum = (env_accum + delta) % 16
