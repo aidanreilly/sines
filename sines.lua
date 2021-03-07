@@ -49,6 +49,27 @@ local envs = {{"drone", 1.0, 1.0, 1.0},
 {"evolve3", 0.3, 20.0, 12.0},
 {"evolve4", 0.4, 25.0, 15.0},
 {"arc", 0.0, 1.0, 1.0}}
+-- use a table constructor to get env values indexed by name
+-- env_bias, attack, decay. bias of 1.0 is used to create a static drone
+local envlopes = {
+              drone={1.0, 1.0, 1.0},
+              am1={0.0, 0.001, 0.01},
+              am2={0.0, 0.001, 0.02},
+              am3={0.3, 0.001, 0.05},
+              pulse1={0.0, 0.001, 0.2},
+              pulse2={0.0, 0.001, 0.5},
+              pulse3={0.0, 0.001, 0.8},
+              pulse4={0.3, 0.001, 1.0},
+              ramp1={0.0, 1.5, 0.01},
+              ramp2={0.0, 2.0, 0.01},
+              ramp3={0.0, 3.0, 0.01},
+              ramp4={0.3, 4.0, 0.01},
+              evolve1={0.3, 10.0, 10.0},
+              evolve2={0.3, 15.0, 11.0},
+              evolve3={0.3, 20.0, 12.0},
+              evolve4={0.4, 25.0, 15.0},
+              arc={0.0, 1.0, 1.0}
+}
 
 local env_values = {}
 local env_edit = 1
@@ -200,13 +221,12 @@ function tune(synth_num, value)
 end
 
 function set_env(synth_num, value)
-    -- goofy way to loop through the envs list, but whatever
   for i = 1,#envs do
     if envs[i][1] == value then
 	--env_name, env_bias, attack, decay
-    	params:set("env_bias" .. synth_num - 1, envs[i][2])
-    	params:set("attack" .. synth_num - 1, envs[i][3])
-    	params:set("decay" .. synth_num - 1, envs[i][4])
+    	params:set("env_bias" .. synth_num, envs[i][2])
+    	params:set("attack" .. synth_num, envs[i][3])
+    	params:set("decay" .. synth_num, envs[i][4])
     end
   end
   env_edit = value
@@ -381,7 +401,7 @@ function enc(n, delta)
 		if key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 0 then
 			--navigate up/down the list of sliders
 			--accum wraps around 0-15
-			accum = (accum + delta) % #envs
+			accum = (accum + delta) % voices 
 			--edit is the slider number
 			edit = accum
       -- this would be better with maths
