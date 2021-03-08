@@ -49,8 +49,9 @@ local envs = {{"drone", 1.0, 1.0, 1.0},
 {"evolve3", 0.3, 20.0, 12.0},
 {"evolve4", 0.4, 25.0, 15.0},
 {"arc", 0.0, 1.0, 1.0}}
--- use a table constructor to get env values indexed by name.
--- refactoring might be not obvious since envelopes["arc"] = table and envelopes[1] = nil.
+-- use a table constructor to create a record for each envelope name.
+-- refactoring might be not obvious since envelopes["drone"] = aTable and envelopes[1] = nil.
+-- https://www.lua.org/pil/3.6.html
 -- env_bias, attack, decay. bias of 1.0 is used to create a static drone
 local envlopes = {
               drone={1.0, 1.0, 1.0},
@@ -218,6 +219,8 @@ function tune(synth_num, value)
 end
 
 function set_env(synth_num, value)
+  -- weird that we can't set the envelope name here but, shrug
+  -- params:set("env" .. synth_num, envs[value][1])
   params:set("env_bias" .. synth_num, envs[value][2])
   params:set("attack" .. synth_num, envs[value][3])
   params:set("decay" .. synth_num, envs[value][4])
@@ -347,6 +350,7 @@ function a.delta(n,delta)
     -- we need polarity of the LED ring
     if lfo[voice].freq > 0 then
       -- seventeen is a special arc envelope, sorry I know magic numbers...
+      -- would be nice to use the table with key names and just say env["arc"]
       envs[17][3] = 0.001
       -- we need seconds per cycle for the envelope
       envs[17][4] = 1 / lfo[voice].freq
@@ -355,6 +359,8 @@ function a.delta(n,delta)
       envs[17][3] = math.abs(1 / lfo[voice].freq)
     end
     set_env(voice, 17)
+    -- hax because I couldn't get this to work in set_env()
+    params:set("env" .. voice, 17)
   end
   lfo[voice].interpolater = 1
   lastTouched = n
