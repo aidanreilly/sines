@@ -218,16 +218,9 @@ function tune(synth_num, value)
 end
 
 function set_env(synth_num, value)
-  for i = 1,#envs do
-    if envs[i][1] == value then
-	--env_name, env_bias, attack, decay
-    	params:set("env_bias" .. synth_num, envs[i][2])
-    	params:set("attack" .. synth_num, envs[i][3])
-    	params:set("decay" .. synth_num, envs[i][4])
-    end
-  end
-  env_edit = value
-  env_values[synth_num] = envs[env_edit] 	
+  params:set("env_bias" .. synth_num, envs[value][2])
+  params:set("attack" .. synth_num, envs[value][3])
+  params:set("decay" .. synth_num, envs[value][4])
 end
 
 function env_formatter(value)
