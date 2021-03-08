@@ -49,7 +49,8 @@ local envs = {{"drone", 1.0, 1.0, 1.0},
 {"evolve3", 0.3, 20.0, 12.0},
 {"evolve4", 0.4, 25.0, 15.0},
 {"arc", 0.0, 1.0, 1.0}}
--- use a table constructor to get env values indexed by name
+-- use a table constructor to get env values indexed by name.
+-- refactoring might be not obvious since envelopes["arc"] = table and envelopes[1] = nil.
 -- env_bias, attack, decay. bias of 1.0 is used to create a static drone
 local envlopes = {
               drone={1.0, 1.0, 1.0},
@@ -154,10 +155,6 @@ function add_params()
 		params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(480, 48000, 'lin', 100, 48000,'hz'))
 		params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
 	end
-  for i = 1,#lfo do
-    params:add_number("env" .. i, "env " .. i, 1, #lfo, 1)
-    params:set_action("env" .. i, function(x) set_env(i, x) end)
-  end
 	params:default()
 	params:bang()
 end
