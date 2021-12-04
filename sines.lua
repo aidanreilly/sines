@@ -61,10 +61,10 @@ function init()
 		sliders[i] = (params:get("vol" .. i))*32
 	end
 
-        _16n.init(init_16n)
+        _16n.init(16n_slider_callback)
 end
 
-function init_16n(midi_msg)
+function 16n_slider_callback(midi_msg)
   local slider_id = _16n.cc_2_slider_id(midi_msg.cc)
   local v = midi_msg.val
 
