@@ -64,6 +64,26 @@ function init()
         _16n.init(_16n_slider_callback)
 end
 
+local prev_16n_slider_v = {
+  vol= {},
+  cents= {},
+  fm_index= {},
+  smpl_rate= {},
+  bit_depth= {},
+  node= {},
+}
+
+function is_prev_16n_slider_v_crossing(mode, i, v)
+  local prev_v = prev_16n_slider_v[mode][i]
+  if prev_v == nil then
+    return true
+  end
+  if math.abs(v - prev_v) < 10 then
+    return true
+  end
+  return false
+end
+
 function _16n_slider_callback(midi_msg)
   local slider_id = _16n.cc_2_slider_id(midi_msg.cc)
   local v = midi_msg.val
@@ -77,18 +97,36 @@ function _16n_slider_callback(midi_msg)
   edit = accum
 
   if key_1_pressed == 0 and key_3_pressed == 0 and key_2_pressed == 0 then
-    params:set("vol" .. edit+1, util.linlin(0, 127, 0.0, 1.0, v))
-    sliders[edit+1] = util.linlin(0, 127, 0, 32, v)
+    if is_prev_16n_slider_v_crossing("vol", slider_id, v) then
+      params:set("vol" .. edit+1, util.linlin(0, 127, 0.0, 1.0, v))
+      sliders[edit+1] = util.linlin(0, 127, 0, 32, v)
+      prev_16n_slider_v["vol"][slider_id] = v
+    end
   elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
-    params:set("cents" .. edit+1, util.linlin(0, 127, -200, 200, v))
+    if is_prev_16n_slider_v_crossing("cents", slider_id, v) then
+      params:set("cents" .. edit+1, util.linlin(0, 127, -200, 200, v))
+      prev_16n_slider_v["cents"][slider_id] = v
+    end
   elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
-    params:set("fm_index" .. edit+1, util.linlin(0, 127, 0.0, 200.0, v))
+    if is_prev_16n_slider_v_crossing("fm_index", slider_id, v) then
+      params:set("fm_index" .. edit+1, util.linlin(0, 127, 0.0, 200.0, v))
+      prev_16n_slider_v["fm_index"][slider_id] = v
+    end
   elseif key_1_pressed == 1  and key_2_pressed == 1 and key_3_pressed == 0 then
-    params:set("smpl_rate" .. edit+1, util.linlin(0, 127, 480, 48000, v))
+    if is_prev_16n_slider_v_crossing("smpl_rate", slider_id, v) then
+      params:set("smpl_rate" .. edit+1, util.linlin(0, 127, 480, 48000, v))
+      prev_16n_slider_v["smpl_rate"][slider_id] = v
+    end
   elseif key_1_pressed == 1  and key_2_pressed == 0 and key_3_pressed == 1 then
-    params:set("bit_depth" .. edit+1, util.linlin(0, 127, 1, 24, v))
+    if is_prev_16n_slider_v_crossing("bit_depth", slider_id, v) then
+      params:set("bit_depth" .. edit+1, util.linlin(0, 127, 1, 24, v))
+      prev_16n_slider_v["bit_depth"][slider_id] = v
+    end
   elseif key_1_pressed == 1  and key_2_pressed == 1 and key_3_pressed == 1 then
-    params:set("note" .. edit+1, v)
+    if is_prev_16n_slider_v_crossing("note", slider_id, v) then
+      params:set("note" .. edit+1, v)
+      prev_16n_slider_v["note"][slider_id] = v
+    end
   end
   redraw()
 end
