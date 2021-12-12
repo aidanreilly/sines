@@ -87,16 +87,13 @@ function init()
   end
 
   _16n.init(_16n_slider_callback)
-  local cents_slider_v = util.linlin(-200, 200, 0, 127, 0)
-  local fm_slider_v = util.linlin(0.0, 200.0, 0, 127, 3.0)
-  local smpl_rate_slider_v = util.linlin(48000, 480, 0, 127, 48000)
-  local bit_depth_slider_v = util.linlin(24, 1, 0, 127, 24)
   for i = 1,16 do
-    prev_16n_slider_v["cents"][i] = cents_slider_v
-    prev_16n_slider_v["fm_index"][i] = fm_slider_v
-    prev_16n_slider_v["smpl_rate"][i] = smpl_rate_slider_v
-    prev_16n_slider_v["bit_depth"][i] = bit_depth_slider_v
-    prev_16n_slider_v["note"][i] = notes[i]
+    prev_16n_slider_v["vol"][i] = util.linlin(0.0, 1.0, 0, 127, params:get("vol"..i))
+    prev_16n_slider_v["cents"][i] = util.linlin(-200, 200, 0, 127, params:get("cents"..i))
+    prev_16n_slider_v["fm_index"][i] = util.linlin(0.0, 200.0, 0, 127, params:get("fm_index"..i))
+    prev_16n_slider_v["smpl_rate"][i] = util.linlin(48000, 480, 0, 127, params:get("smpl_rate"..i))
+    prev_16n_slider_v["bit_depth"][i] = util.linlin(24, 1, 0, 127, params:get("bit_depth"..i))
+    prev_16n_slider_v["note"][i] = params:get("note"..i)
   end
 end
 
