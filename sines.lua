@@ -71,6 +71,9 @@ local prev_16n_slider_v = {
   bit_depth= {},
   note= {},
 }
+local fps = 14
+local redraw_clock
+local screen_dirty = false
 
 engine.name = "Sines"
 MusicUtil = require "musicutil"
@@ -95,7 +98,24 @@ function init()
     prev_16n_slider_v["bit_depth"][i] = util.linlin(24, 1, 0, 127, params:get("bit_depth"..i))
     prev_16n_slider_v["note"][i] = params:get("note"..i)
   end
+
+  redraw_clock = clock.run(
+    function()
+      local step_s = 1 / fps
+      while true do
+        clock.sleep(step_s)
+        if screen_dirty then
+          redraw()
+          screen_dirty = false
+        end
+      end
+  end)
 end
+
+function cleanup()
+  clock.cancel(redraw_clock)
+end
+
 
 function is_prev_16n_slider_v_crossing(mode, i, v)
   local prev_v = prev_16n_slider_v[mode][i]
@@ -155,7 +175,7 @@ function _16n_slider_callback(midi_msg)
       prev_16n_slider_v["note"][slider_id] = v
     end
   end
-  redraw()
+  screen_dirty = true
 end
 
 function add_params()
@@ -229,14 +249,14 @@ function set_note(synth_num, value)
 	if not scale_toggle then
 		edit = synth_num
 	end
-	redraw()
+	screen_dirty = true
 end
 
 function set_freq(synth_num, value)
 	engine.hz(synth_num, value)
 	engine.hz_lag(synth_num, 0.005)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_vol(synth_num, value)
@@ -252,7 +272,7 @@ function tune(synth_num, value)
 	detuned_freq = math.floor((detuned_freq) * 10 / 10)
 	set_freq(synth_num, detuned_freq)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_env(synth_num, value)
@@ -270,42 +290,42 @@ end
 function set_fm_index(synth_num, value)
 	engine.fm_index(synth_num, value)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_amp_atk(synth_num, value)
 	engine.amp_atk(synth_num, value)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_amp_rel(synth_num, value)
 	engine.amp_rel(synth_num, value)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_env_bias(synth_num, value)
 	engine.env_bias(synth_num, value)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_bit_depth(synth_num, value)
 	engine.bit_depth(synth_num, value)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_sample_rate(synth_num, value)
 	engine.sample_rate(synth_num, value)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_synth_pan(synth_num, value)
 	engine.pan(synth_num, value)
-	redraw()
+	screen_dirty = true
 end
 
 function pan_formatter(value)
@@ -363,7 +383,7 @@ m.event = function(data)
 	if d.type == "note_on" then
 		params:set("root_note", d.note)
 	end
-	redraw()
+	screen_dirty = true
 end
 
 
@@ -421,7 +441,7 @@ function enc(n, delta)
                   params:set("bit_depth" .. edit+1, params:get("bit_depth" .. edit+1) + delta)
 		end
 	end
-	redraw()
+	screen_dirty = true
 end
 
 function key(n, z)
@@ -440,7 +460,7 @@ function key(n, z)
 		key_3_pressed = 0
 	end
 	set_pan()
-	redraw()
+	screen_dirty = true
 end
 
 function redraw()
