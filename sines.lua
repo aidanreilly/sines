@@ -1,15 +1,32 @@
 --- ~ sines 0.8 ~
--- @oootini
--- E1 - norns master volume
--- E2 - select sine 1-16
--- E3 - set sine amplitude
--- K2 + E2 - change note
+-- @oootini, @eigen
+--
+--   ~~    ~~    ~~    ~~    ~~    ~~
+--  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
+-- ~    ~~    ~~    ~~    ~~    ~~    ~
+--
+-- ▼ instructions below ▼
+--
+-- E1       - master volume
+-- E2      - active sine
+--
+-- active sine control:
+-- E3      - amplitude
+-- K2 + E2 - note
 -- K2 + E3 - detune
--- K2 + K3 - set voice panning
--- K3 + E2 - change envelope
--- K3 + E3 - change FM index
--- K1 + E2 - change sample rate
--- K1 + E3 - change bit depth
+-- K2 + K3 - voice panning
+-- K3 + E2 - envelope
+-- K3 + E3 - FM index
+-- K1 + E2 - sample rate
+-- K1 + E3 - bit depth
+--
+-- sine control w/ 16n:
+--         - amplitude
+-- K2      - detune
+-- K3      - FM index
+-- K1 + K2 - sample rate
+-- K1 + K3 - bit depth
+-- K1 + K2 + K3 - note
 
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local edit = 1
@@ -46,55 +63,137 @@ local key_2_pressed = 0
 local key_3_pressed = 0
 local toggle = false
 local scale_toggle = false
+local prev_16n_slider_v = {
+  vol= {},
+  cents= {},
+  fm_index= {},
+  smpl_rate= {},
+  bit_depth= {},
+  note= {},
+}
 
 engine.name = "Sines"
 MusicUtil = require "musicutil"
+_16n = include "sines/lib/16n"
 
 function init()
-	print("loaded Sines engine")
-	add_params()
-	edit = 0
-	for i = 1,16 do
-		env_values[i] = params:get("env" .. i)
-		cents[i] = params:get("cents" .. i)
-		sliders[i] = (params:get("vol" .. i))*32
-	end
+  print("loaded Sines engine")
+  add_params()
+  edit = 0
+  for i = 1,16 do
+    env_values[i] = params:get("env" .. i)
+    cents[i] = params:get("cents" .. i)
+    sliders[i] = (params:get("vol" .. i))*32
+  end
+
+  _16n.init(_16n_slider_callback)
+  local cents_slider_v = util.linlin(-200, 200, 0, 127, 0)
+  local fm_slider_v = util.linlin(0.0, 200.0, 0, 127, 3.0)
+  local smpl_rate_slider_v = util.linlin(480, 48000, 0, 127, 48000)
+  local bit_depth_slider_v = util.linlin(1, 24, 0, 127, 24)
+  for i = 1,16 do
+    prev_16n_slider_v["cents"][i] = cents_slider_v
+    prev_16n_slider_v["fm_index"][i] = fm_slider_v
+    prev_16n_slider_v["smpl_rate"][i] = smpl_rate_slider_v
+    prev_16n_slider_v["bit_depth"][i] = bit_depth_slider_v
+    prev_16n_slider_v["note"][i] = notes[i]
+  end
+end
+
+function is_prev_16n_slider_v_crossing(mode, i, v)
+  local prev_v = prev_16n_slider_v[mode][i]
+  if prev_v == nil then
+    return true
+  end
+  if math.abs(v - prev_v) < 10 then
+    return true
+  end
+  return false
+end
+
+function _16n_slider_callback(midi_msg)
+  local slider_id = _16n.cc_2_slider_id(midi_msg.cc)
+  local v = midi_msg.val
+
+  if params:string("16n_auto") == "no" then
+    return
+  end
+
+  -- update current slider
+  accum = slider_id-1
+  edit = accum
+
+  if key_1_pressed == 0 and key_3_pressed == 0 and key_2_pressed == 0 then
+    if is_prev_16n_slider_v_crossing("vol", slider_id, v) then
+      params:set("vol" .. edit+1, util.linlin(0, 127, 0.0, 1.0, v))
+      sliders[edit+1] = util.linlin(0, 127, 0, 32, v)
+      prev_16n_slider_v["vol"][slider_id] = v
+    end
+  elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
+    if is_prev_16n_slider_v_crossing("cents", slider_id, v) then
+      params:set("cents" .. edit+1, util.linlin(0, 127, -200, 200, v))
+      prev_16n_slider_v["cents"][slider_id] = v
+    end
+  elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
+    if is_prev_16n_slider_v_crossing("fm_index", slider_id, v) then
+      params:set("fm_index" .. edit+1, util.linlin(0, 127, 0.0, 200.0, v))
+      prev_16n_slider_v["fm_index"][slider_id] = v
+    end
+  elseif key_1_pressed == 1  and key_2_pressed == 1 and key_3_pressed == 0 then
+    if is_prev_16n_slider_v_crossing("smpl_rate", slider_id, v) then
+      params:set("smpl_rate" .. edit+1, util.linlin(0, 127, 480, 48000, v))
+      prev_16n_slider_v["smpl_rate"][slider_id] = v
+    end
+  elseif key_1_pressed == 1  and key_2_pressed == 0 and key_3_pressed == 1 then
+    if is_prev_16n_slider_v_crossing("bit_depth", slider_id, v) then
+      params:set("bit_depth" .. edit+1, util.linlin(0, 127, 1, 24, v))
+      prev_16n_slider_v["bit_depth"][slider_id] = v
+    end
+  elseif key_1_pressed == 1  and key_2_pressed == 1 and key_3_pressed == 1 then
+    if is_prev_16n_slider_v_crossing("note", slider_id, v) then
+      params:set("note" .. edit+1, v)
+      prev_16n_slider_v["note"][slider_id] = v
+    end
+  end
+  redraw()
 end
 
 function add_params()
-	--set the scale note values
+  --set the scale note values
 	for i = 1, #MusicUtil.SCALES do
 		table.insert(scale_names, string.lower(MusicUtil.SCALES[i].name))
 	end
 	params:add{type = "option", id = "scale_mode", name = "scale mode",
 		options = scale_names, default = 5,
-	action = function() set_notes() end}
+                action = function() set_notes() end}
 	params:add{type = "number", id = "root_note", name = "root note",
-		min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
-	action = function() set_notes() end}
-	--set voice params
-	for i = 1,16 do
-		params:add_group("voice " .. i .. " params", 11)
-		--set voice vols
-		params:add_control("vol" .. i, "vol " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
-		params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
-		params:add{type = "number", id = "pan" ..i, name = "pan " .. i, min = -1, max = 1, default = 0, formatter = function(param) return pan_formatter(param:get()) end, action = function(x) set_synth_pan(i - 1, x) end}
-		params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
-		params:add_control("cents" .. i, "cents detune " .. i, controlspec.new(-200, 200, 'lin', 1, 0,'cents'))
-		params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
-		params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.0, 200.0, 'lin', 1.0, 3.0))
-		params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
-		params:add{type = "number", id = "env" ..i, name = "env " .. i, min = 1, max = 16, default = 1, formatter = function(param) return env_formatter(param:get()) end, action = function(x) set_env(i, x) end}
-		params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
-		params:set_action("attack" .. i, function(x) set_amp_atk(i - 1, x) end)
-		params:add_control("decay" .. i, "env decay " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
-		params:set_action("decay" .. i, function(x) set_amp_rel(i - 1, x) end)
-		params:add_control("env_bias" .. i, "env bias " .. i, controlspec.new(0.0, 1.0, 'lin', 0.1, 1.0))
-		params:set_action("env_bias" .. i, function(x) set_env_bias(i - 1, x) end)
-		params:add_control("bit_depth" .. i, "bit depth " .. i, controlspec.new(1, 24, 'lin', 1, 24, 'bits'))
-		params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
-		params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(480, 48000, 'lin', 100, 48000,'hz'))
-		params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
+                   min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
+                   action = function() set_notes() end}
+        params:add{type = "option", id = "16n_auto", name = "auto bind 16n",
+                   options = {"yes", "no"}, default = 1}
+        --set voice params
+        for i = 1,16 do
+          params:add_group("voice " .. i .. " params", 11)
+          --set voice vols
+          params:add_control("vol" .. i, "vol " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
+          params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
+          params:add{type = "number", id = "pan" ..i, name = "pan " .. i, min = -1, max = 1, default = 0, formatter = function(param) return pan_formatter(param:get()) end, action = function(x) set_synth_pan(i - 1, x) end}
+          params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
+          params:add_control("cents" .. i, "cents detune " .. i, controlspec.new(-200, 200, 'lin', 1, 0,'cents'))
+          params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
+          params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.0, 200.0, 'lin', 1.0, 3.0))
+          params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
+          params:add{type = "number", id = "env" ..i, name = "env " .. i, min = 1, max = 16, default = 1, formatter = function(param) return env_formatter(param:get()) end, action = function(x) set_env(i, x) end}
+          params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
+          params:set_action("attack" .. i, function(x) set_amp_atk(i - 1, x) end)
+          params:add_control("decay" .. i, "env decay " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
+          params:set_action("decay" .. i, function(x) set_amp_rel(i - 1, x) end)
+          params:add_control("env_bias" .. i, "env bias " .. i, controlspec.new(0.0, 1.0, 'lin', 0.1, 1.0))
+          params:set_action("env_bias" .. i, function(x) set_env_bias(i - 1, x) end)
+          params:add_control("bit_depth" .. i, "bit depth " .. i, controlspec.new(1, 24, 'lin', 1, 24, 'bits'))
+          params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
+          params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(480, 48000, 'lin', 100, 48000,'hz'))
+          params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
 	end
 	params:default()
 	params:bang()
@@ -221,7 +320,7 @@ end
 
 function set_pan()
   -- pan position on the bus, -1 is left, 1 is right
-  if key_2_pressed == 1 and key_3_pressed == 1 then
+  if key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 1 then
     toggle = not toggle
     if toggle then
       --set hard l/r pan values
@@ -285,12 +384,12 @@ function enc(n, delta)
       --env_edit is the env_values selector
       --env_edit = env_accum
       --change the AD env values
-      --env_values[edit+1] = env_edit+1  
-      --set the env
-      --set_env(edit+1, env_edit+1)
+      --env_values[edit+1] = env_edit+1
+                        --set the env
+                        --set_env(edit+1, env_edit+1)
 
 		elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
-			-- increment the note value with delta
+                  -- increment the note value with delta
 			params:set("note" .. edit+1, params:get("note" .. edit+1) + delta)
 
 		elseif key_1_pressed == 1 and key_2_pressed == 0 and key_3_pressed == 0 then
@@ -316,8 +415,8 @@ function enc(n, delta)
 			params:set("fm_index" .. edit+1, params:get("fm_index" .. edit+1) + delta)
 
 		elseif key_1_pressed == 1  and key_2_pressed == 0 and key_3_pressed == 0 then
-			--set bit depth
-			params:set("bit_depth" .. edit+1, params:get("bit_depth" .. edit+1) + delta)
+                  --set bit depth
+                  params:set("bit_depth" .. edit+1, params:get("bit_depth" .. edit+1) + delta)
 		end
 	end
 	redraw()
