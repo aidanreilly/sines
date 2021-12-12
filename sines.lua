@@ -89,8 +89,8 @@ function init()
   _16n.init(_16n_slider_callback)
   local cents_slider_v = util.linlin(-200, 200, 0, 127, 0)
   local fm_slider_v = util.linlin(0.0, 200.0, 0, 127, 3.0)
-  local smpl_rate_slider_v = util.linlin(480, 48000, 0, 127, 48000)
-  local bit_depth_slider_v = util.linlin(1, 24, 0, 127, 24)
+  local smpl_rate_slider_v = util.linlin(48000, 480, 0, 127, 48000)
+  local bit_depth_slider_v = util.linlin(24, 1, 0, 127, 24)
   for i = 1,16 do
     prev_16n_slider_v["cents"][i] = cents_slider_v
     prev_16n_slider_v["fm_index"][i] = fm_slider_v
@@ -141,12 +141,12 @@ function _16n_slider_callback(midi_msg)
     end
   elseif key_1_pressed == 1  and key_2_pressed == 1 and key_3_pressed == 0 then
     if is_prev_16n_slider_v_crossing("smpl_rate", slider_id, v) then
-      params:set("smpl_rate" .. edit+1, util.linlin(0, 127, 480, 48000, v))
+      params:set("smpl_rate" .. edit+1, util.linlin(0, 127, 48000, 480, v))
       prev_16n_slider_v["smpl_rate"][slider_id] = v
     end
   elseif key_1_pressed == 1  and key_2_pressed == 0 and key_3_pressed == 1 then
     if is_prev_16n_slider_v_crossing("bit_depth", slider_id, v) then
-      params:set("bit_depth" .. edit+1, util.linlin(0, 127, 1, 24, v))
+      params:set("bit_depth" .. edit+1, util.linlin(0, 127, 24, 1, v))
       prev_16n_slider_v["bit_depth"][slider_id] = v
     end
   elseif key_1_pressed == 1  and key_2_pressed == 1 and key_3_pressed == 1 then
