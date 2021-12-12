@@ -63,32 +63,42 @@ local key_2_pressed = 0
 local key_3_pressed = 0
 local toggle = false
 local scale_toggle = false
-
-engine.name = "Sines"
-MusicUtil = require "musicutil"
-_16n = include "sines/lib/16n"
-
-function init()
-	print("loaded Sines engine")
-	add_params()
-	edit = 0
-	for i = 1,16 do
-		env_values[i] = params:get("env" .. i)
-		cents[i] = params:get("cents" .. i)
-		sliders[i] = (params:get("vol" .. i))*32
-	end
-
-        _16n.init(_16n_slider_callback)
-end
-
 local prev_16n_slider_v = {
   vol= {},
   cents= {},
   fm_index= {},
   smpl_rate= {},
   bit_depth= {},
-  node= {},
+  note= {},
 }
+
+engine.name = "Sines"
+MusicUtil = require "musicutil"
+_16n = include "sines/lib/16n"
+
+function init()
+  print("loaded Sines engine")
+  add_params()
+  edit = 0
+  for i = 1,16 do
+    env_values[i] = params:get("env" .. i)
+    cents[i] = params:get("cents" .. i)
+    sliders[i] = (params:get("vol" .. i))*32
+  end
+
+  _16n.init(_16n_slider_callback)
+  local cents_slider_v = util.linlin(-200, 200, 0, 127, 0)
+  local fm_slider_v = util.linlin(0.0, 200.0, 0, 127, 3.0)
+  local smpl_rate_slider_v = util.linlin(480, 48000, 0, 127, 48000)
+  local bit_depth_slider_v = util.linlin(1, 24, 0, 127, 24)
+  for i = 1,16 do
+    prev_16n_slider_v["cents"][i] = cents_slider_v
+    prev_16n_slider_v["fm_index"][i] = fm_slider_v
+    prev_16n_slider_v["smpl_rate"][i] = smpl_rate_slider_v
+    prev_16n_slider_v["bit_depth"][i] = bit_depth_slider_v
+    prev_16n_slider_v["note"][i] = notes[i]
+  end
+end
 
 function is_prev_16n_slider_v_crossing(mode, i, v)
   local prev_v = prev_16n_slider_v[mode][i]
