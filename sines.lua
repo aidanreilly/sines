@@ -71,6 +71,9 @@ local prev_16n_slider_v = {
   bit_depth= {},
   note= {},
 }
+local fps = 14
+local redraw_clock
+local screen_dirty = false
 
 engine.name = "Sines"
 MusicUtil = require "musicutil"
@@ -87,21 +90,38 @@ function init()
   end
 
   _16n.init(_16n_slider_callback)
-  local cents_slider_v = util.linlin(-200, 200, 0, 127, 0)
-  local fm_slider_v = util.linlin(0.0, 200.0, 0, 127, 3.0)
-  local smpl_rate_slider_v = util.linlin(480, 48000, 0, 127, 48000)
-  local bit_depth_slider_v = util.linlin(1, 24, 0, 127, 24)
   for i = 1,16 do
-    prev_16n_slider_v["cents"][i] = cents_slider_v
-    prev_16n_slider_v["fm_index"][i] = fm_slider_v
-    prev_16n_slider_v["smpl_rate"][i] = smpl_rate_slider_v
-    prev_16n_slider_v["bit_depth"][i] = bit_depth_slider_v
-    prev_16n_slider_v["note"][i] = notes[i]
+    prev_16n_slider_v["vol"][i] = util.linlin(0.0, 1.0, 0, 127, params:get("vol"..i))
+    prev_16n_slider_v["cents"][i] = util.linlin(-200, 200, 0, 127, params:get("cents"..i))
+    prev_16n_slider_v["fm_index"][i] = util.linlin(0.0, 200.0, 0, 127, params:get("fm_index"..i))
+    prev_16n_slider_v["smpl_rate"][i] = util.linlin(48000, 480, 0, 127, params:get("smpl_rate"..i))
+    prev_16n_slider_v["bit_depth"][i] = util.linlin(24, 1, 0, 127, params:get("bit_depth"..i))
+    prev_16n_slider_v["note"][i] = params:get("note"..i)
   end
+
+  redraw_clock = clock.run(
+    function()
+      local step_s = 1 / fps
+      while true do
+        clock.sleep(step_s)
+        if screen_dirty then
+          redraw()
+          screen_dirty = false
+        end
+      end
+  end)
 end
+
+function cleanup()
+  clock.cancel(redraw_clock)
+end
+
 
 function is_prev_16n_slider_v_crossing(mode, i, v)
   local prev_v = prev_16n_slider_v[mode][i]
+  if mode ~= "vol" and params:string("16n_params_jump") == "yes" then
+    return true
+  end
   if prev_v == nil then
     return true
   end
@@ -141,12 +161,12 @@ function _16n_slider_callback(midi_msg)
     end
   elseif key_1_pressed == 1  and key_2_pressed == 1 and key_3_pressed == 0 then
     if is_prev_16n_slider_v_crossing("smpl_rate", slider_id, v) then
-      params:set("smpl_rate" .. edit+1, util.linlin(0, 127, 480, 48000, v))
+      params:set("smpl_rate" .. edit+1, util.linlin(0, 127, 48000, 480, v))
       prev_16n_slider_v["smpl_rate"][slider_id] = v
     end
   elseif key_1_pressed == 1  and key_2_pressed == 0 and key_3_pressed == 1 then
     if is_prev_16n_slider_v_crossing("bit_depth", slider_id, v) then
-      params:set("bit_depth" .. edit+1, util.linlin(0, 127, 1, 24, v))
+      params:set("bit_depth" .. edit+1, util.linlin(0, 127, 24, 1, v))
       prev_16n_slider_v["bit_depth"][slider_id] = v
     end
   elseif key_1_pressed == 1  and key_2_pressed == 1 and key_3_pressed == 1 then
@@ -155,7 +175,7 @@ function _16n_slider_callback(midi_msg)
       prev_16n_slider_v["note"][slider_id] = v
     end
   end
-  redraw()
+  screen_dirty = true
 end
 
 function add_params()
@@ -170,6 +190,8 @@ function add_params()
                    min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
                    action = function() set_notes() end}
         params:add{type = "option", id = "16n_auto", name = "auto bind 16n",
+                   options = {"yes", "no"}, default = 1}
+        params:add{type = "option", id = "16n_params_jump", name = "16n params jumps",
                    options = {"yes", "no"}, default = 1}
         --set voice params
         for i = 1,16 do
@@ -227,14 +249,14 @@ function set_note(synth_num, value)
 	if not scale_toggle then
 		edit = synth_num
 	end
-	redraw()
+	screen_dirty = true
 end
 
 function set_freq(synth_num, value)
 	engine.hz(synth_num, value)
 	engine.hz_lag(synth_num, 0.005)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_vol(synth_num, value)
@@ -250,7 +272,7 @@ function tune(synth_num, value)
 	detuned_freq = math.floor((detuned_freq) * 10 / 10)
 	set_freq(synth_num, detuned_freq)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_env(synth_num, value)
@@ -268,42 +290,42 @@ end
 function set_fm_index(synth_num, value)
 	engine.fm_index(synth_num, value)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_amp_atk(synth_num, value)
 	engine.amp_atk(synth_num, value)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_amp_rel(synth_num, value)
 	engine.amp_rel(synth_num, value)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_env_bias(synth_num, value)
 	engine.env_bias(synth_num, value)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_bit_depth(synth_num, value)
 	engine.bit_depth(synth_num, value)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_sample_rate(synth_num, value)
 	engine.sample_rate(synth_num, value)
 	edit = synth_num
-	redraw()
+	screen_dirty = true
 end
 
 function set_synth_pan(synth_num, value)
 	engine.pan(synth_num, value)
-	redraw()
+	screen_dirty = true
 end
 
 function pan_formatter(value)
@@ -361,7 +383,7 @@ m.event = function(data)
 	if d.type == "note_on" then
 		params:set("root_note", d.note)
 	end
-	redraw()
+	screen_dirty = true
 end
 
 
@@ -419,7 +441,7 @@ function enc(n, delta)
                   params:set("bit_depth" .. edit+1, params:get("bit_depth" .. edit+1) + delta)
 		end
 	end
-	redraw()
+	screen_dirty = true
 end
 
 function key(n, z)
@@ -438,7 +460,7 @@ function key(n, z)
 		key_3_pressed = 0
 	end
 	set_pan()
-	redraw()
+	screen_dirty = true
 end
 
 function redraw()
