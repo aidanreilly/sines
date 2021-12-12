@@ -10,7 +10,7 @@
 -- E1       - master volume
 -- E2      - active sine
 --
--- Active sine control:
+-- active sine control:
 -- E3      - amplitude
 -- K2 + E2 - note
 -- K2 + E3 - detune
@@ -20,7 +20,7 @@
 -- K1 + E2 - sample rate
 -- K1 + E3 - bit depth
 --
--- 16n sine control:
+-- sine control w/ 16n:
 --         - amplitude
 -- K2      - detune
 -- K3      - FM index
