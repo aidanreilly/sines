@@ -1,5 +1,5 @@
 --- ~ sines 0.8 ~
--- @oootini
+-- @oootini, @eigen
 -- E1 - norns master volume
 -- E2 - select sine 1-16
 -- E3 - set sine amplitude
