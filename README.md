@@ -34,11 +34,11 @@ When a 16n is detected, each of its sliders gets automatically assigned to a sin
 
 * [16n slider] sine amplitude
 * Move a 16n slider and hold one of the following:
-** [K2] detune
-** [K3] FM index
-** [K1] + [K2] sample rate
-** [K1] + [K3] bit depth
-** [K1] + [K2] + [K3] change note
+    * [K2] detune
+    * [K3] FM index
+    * [K1] + [K2] sample rate
+    * [K1] + [K3] bit depth
+    * [K1] + [K2] + [K3] change note
 
 Saving a pset saves the note selection and midi mapping. The last saved pset is loaded when the app launches.
 
