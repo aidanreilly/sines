@@ -102,6 +102,9 @@ end
 
 function is_prev_16n_slider_v_crossing(mode, i, v)
   local prev_v = prev_16n_slider_v[mode][i]
+  if mode ~= "vol" and params:string("16n_params_jump") == "yes" then
+    return true
+  end
   if prev_v == nil then
     return true
   end
@@ -170,6 +173,8 @@ function add_params()
                    min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
                    action = function() set_notes() end}
         params:add{type = "option", id = "16n_auto", name = "auto bind 16n",
+                   options = {"yes", "no"}, default = 1}
+        params:add{type = "option", id = "16n_params_jump", name = "16n params jumps",
                    options = {"yes", "no"}, default = 1}
         --set voice params
         for i = 1,16 do
