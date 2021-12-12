@@ -1,15 +1,32 @@
 --- ~ sines 0.8 ~
 -- @oootini, @eigen
--- E1 - norns master volume
--- E2 - select sine 1-16
--- E3 - set sine amplitude
--- K2 + E2 - change note
+--
+--   ~~    ~~    ~~    ~~    ~~    ~~
+--  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
+-- ~    ~~    ~~    ~~    ~~    ~~    ~
+--
+-- ▼ instructions below ▼
+--
+-- E1       - master volume
+-- E2      - active sine
+--
+-- Active sine control:
+-- E3      - amplitude
+-- K2 + E2 - note
 -- K2 + E3 - detune
--- K2 + K3 - set voice panning
--- K3 + E2 - change envelope
--- K3 + E3 - change FM index
--- K1 + E2 - change sample rate
--- K1 + E3 - change bit depth
+-- K2 + K3 - voice panning
+-- K3 + E2 - envelope
+-- K3 + E3 - FM index
+-- K1 + E2 - sample rate
+-- K1 + E3 - bit depth
+--
+-- 16n sine control:
+--         - amplitude
+-- K2      - detune
+-- K3      - FM index
+-- K1 + K2 - sample rate
+-- K1 + K3 - bit depth
+-- K1 + K2 + K3 - note
 
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local edit = 1
