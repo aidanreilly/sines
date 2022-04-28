@@ -376,14 +376,14 @@ end
 m = midi.connect()
 m.event = function(data)
 	local d = midi.to_msg(data)
-	if d.type == "cc" then
-		--set all the sliders + fm values
-		for i = 1,16 do
-			sliders[i] = (params:get("vol" .. i))*32 - 1
-			if sliders[i] > 32 then sliders[i] = 32 end
-			if sliders[i] < 0 then sliders[i] = 0 end
-		end
-	end
+	-- if d.type == "cc" then
+	-- 	--set all the sliders + fm values
+	-- 	for i = 1,16 do
+	-- 		sliders[i] = (params:get("vol" .. i))*32 - 1
+	-- 		if sliders[i] > 32 then sliders[i] = 32 end
+	-- 		if sliders[i] < 0 then sliders[i] = 0 end
+	-- 	end
+	-- end
 	--allow root note to be set from midi keyboard - doesn't work with multiple midi devices?
 	if d.type == "note_on" then
 		params:set("root_note", d.note)
