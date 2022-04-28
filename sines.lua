@@ -146,7 +146,6 @@ function _16n_slider_callback(midi_msg)
   if key_1_pressed == 0 and key_3_pressed == 0 and key_2_pressed == 0 then
     if is_prev_16n_slider_v_crossing("vol", slider_id, v) then
       params:set("vol" .. edit+1, util.linlin(0, 127, 0.0, 1.0, v))
-      sliders[edit+1] = util.linlin(0, 127, 0, 32, v)
       prev_16n_slider_v["vol"][slider_id] = v
     end
   elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
@@ -262,6 +261,12 @@ end
 function set_vol(synth_num, value)
 	engine.vol(synth_num, value)
 	edit = synth_num
+
+        -- update displayed sine value
+        local s_id = (synth_num + 1)
+        sliders[s_id] = math.floor(util.linlin(0.0, 1.0, 0, 32, value))
+
+        screen_dirty = true
 end
 
 function tune(synth_num, value)
@@ -371,14 +376,14 @@ end
 m = midi.connect()
 m.event = function(data)
 	local d = midi.to_msg(data)
-	if d.type == "cc" then
-		--set all the sliders + fm values
-		for i = 1,16 do
-			sliders[i] = (params:get("vol" .. i))*32 - 1
-			if sliders[i] > 32 then sliders[i] = 32 end
-			if sliders[i] < 0 then sliders[i] = 0 end
-		end
-	end
+	-- if d.type == "cc" then
+	-- 	--set all the sliders + fm values
+	-- 	for i = 1,16 do
+	-- 		sliders[i] = (params:get("vol" .. i))*32 - 1
+	-- 		if sliders[i] > 32 then sliders[i] = 32 end
+	-- 		if sliders[i] < 0 then sliders[i] = 0 end
+	-- 	end
+	-- end
 	--allow root note to be set from midi keyboard - doesn't work with multiple midi devices?
 	if d.type == "note_on" then
 		params:set("root_note", d.note)
@@ -422,12 +427,9 @@ function enc(n, delta)
 	elseif n == 3 then
 		if key_1_pressed == 0 and key_3_pressed == 0 and key_2_pressed == 0 then
 			--set the slider value
-			sliders[edit+1] = sliders[edit+1] + delta
-			amp_value = util.clamp(((sliders[edit+1] + delta) * .026), 0.0, 1.0)
+                        local new_v = sliders[edit+1] + (delta * 2)
+			local amp_value = util.linlin(0, 32, 0.0, 1.0, new_v)
 			params:set("vol" .. edit+1, amp_value)
-			if sliders[edit+1] > 32 then sliders[edit+1] = 32 end
-			if sliders[edit+1] < 0 then sliders[edit+1] = 0 end
-
 		elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
 			--set the cents value to increment by
 			params:set("cents" .. edit+1, params:get("cents" .. edit+1) + delta)
