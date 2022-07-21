@@ -140,6 +140,10 @@ function _16n_slider_callback(midi_msg)
   end
 
   -- update current slider
+  params:set("fader" .. slider_id, v)
+end
+
+function virtual_slider_callback(slider_id, v)
   accum = slider_id-1
   edit = accum
 
@@ -192,6 +196,11 @@ function add_params()
                    options = {"yes", "no"}, default = 1}
         params:add{type = "option", id = "16n_params_jump", name = "16n params jumps",
                    options = {"yes", "no"}, default = 1}
+        --set virtual faders params
+        params:add_group("virtual faders", 16)
+        for i = 1,16 do
+          params:add{type = "number", id = "fader" ..i, name = "fader " .. i, min = 0, max = 127, default = 0, action = function(v) virtual_slider_callback(i, v) end}
+        end
         --set voice params
         for i = 1,16 do
           params:add_group("voice " .. i .. " params", 11)
