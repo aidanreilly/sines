@@ -1,4 +1,4 @@
---- ~ sines 0.9 ~
+--- ~ sines 1.0 ~
 -- @oootini, @eigen
 --
 --   ~~    ~~    ~~    ~~    ~~    ~~
@@ -79,6 +79,25 @@ engine.name = "Sines"
 MusicUtil = require "musicutil"
 _16n = include "sines/lib/16n"
 
+--scala stuff from https://github.com/catfact/z_tuning/blob/main/lib/mod.lua thank you zebra
+local util = require 'util'
+local ControlSpec = require 'controlspec'
+
+local tuning_scala = include('sines/lib/tuning_scala')
+
+local tuning_state = {
+   root_freq = 440.0,
+   selected_tuning = 'colundi'
+}
+
+--TODO
+-- param scheme for tunings - keep it simple, scroll a list of files, select a tuning and bang it
+-- selecting scl should disable midi scales, and vice versa
+-- new scheme for tweaking note values when using scala (basic cents tuning?)
+-- handle root notes for midi and scala. should use same param
+-- how on handle init() stuff
+-- show midi note/hz/cents (?) in UI
+
 function init()
   print("loaded Sines engine")
   add_params()
@@ -116,6 +135,22 @@ function cleanup()
   clock.cancel(redraw_clock)
 end
 
+--scala stuff
+
+-- set the root frequency, without changing root note
+-- this effects a transposition
+function set_root_frequency(freq)
+  tuning_state.root_freq = freq
+  params:set('root_freq', freq, true)
+  --and then what?
+end
+
+function load_scl(file)
+  tuning = tuning_scala.load_file(file)
+  tab.print(tuning)
+end
+
+--end scala stuff
 
 function is_prev_16n_slider_v_crossing(mode, i, v)
   local prev_v = prev_16n_slider_v[mode][i]
@@ -187,43 +222,45 @@ function add_params()
 		table.insert(scale_names, string.lower(MusicUtil.SCALES[i].name))
 	end
 	params:add{type = "option", id = "scale_mode", name = "scale mode",
-		options = scale_names, default = 5,
-                action = function() set_notes() end}
-	params:add{type = "number", id = "root_note", name = "root note",
-                   min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
-                   action = function() set_notes() end}
-        params:add{type = "option", id = "16n_auto", name = "auto bind 16n",
-                   options = {"yes", "no"}, default = 1}
-        params:add{type = "option", id = "16n_params_jump", name = "16n params jumps",
-                   options = {"yes", "no"}, default = 1}
-        --set virtual faders params
-        params:add_group("virtual faders", 16)
-        for i = 1,16 do
-          params:add{type = "number", id = "fader" ..i, name = "fader " .. i, min = 0, max = 127, default = 0, action = function(v) virtual_slider_callback(i, v) end}
-        end
-        --set voice params
-        for i = 1,16 do
-          params:add_group("voice " .. i .. " params", 11)
-          --set voice vols
-          params:add_control("vol" .. i, "vol " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
-          params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
-          params:add{type = "number", id = "pan" ..i, name = "pan " .. i, min = -1, max = 1, default = 0, formatter = function(param) return pan_formatter(param:get()) end, action = function(x) set_synth_pan(i - 1, x) end}
-          params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
-          params:add_control("cents" .. i, "cents detune " .. i, controlspec.new(-200, 200, 'lin', 1, 0,'cents'))
-          params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
-          params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.0, 200.0, 'lin', 1.0, 3.0))
-          params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
-          params:add{type = "number", id = "env" ..i, name = "env " .. i, min = 1, max = 16, default = 1, formatter = function(param) return env_formatter(param:get()) end, action = function(x) set_env(i, x) end}
-          params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
-          params:set_action("attack" .. i, function(x) set_amp_atk(i - 1, x) end)
-          params:add_control("decay" .. i, "env decay " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
-          params:set_action("decay" .. i, function(x) set_amp_rel(i - 1, x) end)
-          params:add_control("env_bias" .. i, "env bias " .. i, controlspec.new(0.0, 1.0, 'lin', 0.1, 1.0))
-          params:set_action("env_bias" .. i, function(x) set_env_bias(i - 1, x) end)
-          params:add_control("bit_depth" .. i, "bit depth " .. i, controlspec.new(1, 24, 'lin', 1, 24, 'bits'))
-          params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
-          params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(480, 48000, 'lin', 100, 48000,'hz'))
-          params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
+		options = scale_names, default = 5, action = function() set_notes() end}
+	params:add{type = "number", id = "root_note", name = "root note", min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function() set_notes() end}
+  --scala bits
+  params:add_group("scl", "scala tuning", 2)
+  params:add{type="file", id="scl_file", name="scala file", path=_path.dust .. 'code/sines/lib/tunings/colundi.scl', action=function(x) load_scl(x) end}
+  params:add_control('root_freq', 'root frequency', ControlSpec.FREQ)
+  params:set_action('root_freq', function(x) set_root_frequency(x) end)
+
+  params:add{type = "option", id = "16n_auto", name = "auto bind 16n", options = {"yes", "no"}, default = 1}
+  params:add{type = "option", id = "16n_params_jump", name = "16n params jumps", options = {"yes", "no"}, default = 1}
+  
+  --set virtual faders params
+  params:add_group("virtual faders", 16)
+  for i = 1,16 do
+    params:add{type = "number", id = "fader" ..i, name = "fader " .. i, min = 0, max = 127, default = 0, action = function(v) virtual_slider_callback(i, v) end}
+  end
+  --set voice params
+  for i = 1,16 do
+    params:add_group("voice " .. i .. " params", 11)
+    --set voice vols
+    params:add_control("vol" .. i, "vol " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
+    params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
+    params:add{type = "number", id = "pan" ..i, name = "pan " .. i, min = -1, max = 1, default = 0, formatter = function(param) return pan_formatter(param:get()) end, action = function(x) set_synth_pan(i - 1, x) end}
+    params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
+    params:add_control("cents" .. i, "cents detune " .. i, controlspec.new(-200, 200, 'lin', 1, 0,'cents'))
+    params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
+    params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.0, 200.0, 'lin', 1.0, 3.0))
+    params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
+    params:add{type = "number", id = "env" ..i, name = "env " .. i, min = 1, max = 16, default = 1, formatter = function(param) return env_formatter(param:get()) end, action = function(x) set_env(i, x) end}
+    params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
+    params:set_action("attack" .. i, function(x) set_amp_atk(i - 1, x) end)
+    params:add_control("decay" .. i, "env decay " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0,'s'))
+    params:set_action("decay" .. i, function(x) set_amp_rel(i - 1, x) end)
+    params:add_control("env_bias" .. i, "env bias " .. i, controlspec.new(0.0, 1.0, 'lin', 0.1, 1.0))
+    params:set_action("env_bias" .. i, function(x) set_env_bias(i - 1, x) end)
+    params:add_control("bit_depth" .. i, "bit depth " .. i, controlspec.new(1, 24, 'lin', 1, 24, 'bits'))
+    params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
+    params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(480, 48000, 'lin', 100, 48000,'hz'))
+    params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
 	end
 	params:default()
 	params:bang()
