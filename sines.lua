@@ -1,13 +1,12 @@
---- ~ sines 0.9 ~
+--- ~ sines 1.0 ~
 -- @oootini, @eigen
---
---   ~~    ~~    ~~    ~~    ~~    ~~
---  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
--- ~    ~~    ~~    ~~    ~~    ~~    ~
---
--- ▼ instructions below ▼
---
--- E1       - master volume
+-- z_tuning lib by @zebra
+--                                                                  
+-- ,-.   ,-.   ,-.   
+--    `-'   `-'   `-'
+-- 
+-- ▼ controls ▼ 
+-- E1      - master volumee
 -- E2      - active sine
 --
 -- active sine control:
@@ -21,7 +20,7 @@
 -- K1 + E3 - bit depth
 --
 -- sine control w/ 16n:
---         - amplitude
+-- n       - amplitude
 -- K2      - detune
 -- K3      - FM index
 -- K1 + K2 - sample rate
@@ -75,9 +74,12 @@ local fps = 14
 local redraw_clock
 local screen_dirty = false
 
+local display = 1
+
 engine.name = "Sines"
 MusicUtil = require "musicutil"
 _16n = include "sines/lib/16n"
+z_tuning = require "z_tuning/lib/mod"
 
 function init()
   print("loaded Sines engine")
@@ -110,12 +112,26 @@ function init()
         end
       end
   end)
+
+  --- refresh all sine freqs when z_tuning changes
+  if z_tuning then
+    z_tuning.set_tuning_change_callback(function()
+      local num, detune, hz
+      for voice=1,16 do 
+        num = params:get("note" .. voice)
+        detune = params:get("cents" .. voice)
+        hz = MusicUtil.note_num_to_freq(num + (detune*0.01))
+        engine.hz(voice-1, hz)
+        params:set("z_freq" .. voice, hz)
+      end
+    end)
+  end
+
 end
 
 function cleanup()
   clock.cancel(redraw_clock)
 end
-
 
 function is_prev_16n_slider_v_crossing(mode, i, v)
   local prev_v = prev_16n_slider_v[mode][i]
@@ -182,6 +198,8 @@ function virtual_slider_callback(slider_id, v)
 end
 
 function add_params()
+  params:add{type = "option", id = "display", name = "note display",
+                   options = {"midi note", "freq"}, default = 1}
   --set the scale note values
 	for i = 1, #MusicUtil.SCALES do
 		table.insert(scale_names, string.lower(MusicUtil.SCALES[i].name))
@@ -208,6 +226,8 @@ function add_params()
           params:add_control("vol" .. i, "vol " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
           params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
           params:add{type = "number", id = "pan" ..i, name = "pan " .. i, min = -1, max = 1, default = 0, formatter = function(param) return pan_formatter(param:get()) end, action = function(x) set_synth_pan(i - 1, x) end}
+          --bang from z_tuning
+          params:add_control("z_freq" .. i, "z_frequency " .. i, controlspec.FREQ)
           params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
           params:add_control("cents" .. i, "cents detune " .. i, controlspec.new(-200, 200, 'lin', 1, 0,'cents'))
           params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
@@ -385,15 +405,6 @@ end
 m = midi.connect()
 m.event = function(data)
 	local d = midi.to_msg(data)
-	-- if d.type == "cc" then
-	-- 	--set all the sliders + fm values
-	-- 	for i = 1,16 do
-	-- 		sliders[i] = (params:get("vol" .. i))*32 - 1
-	-- 		if sliders[i] > 32 then sliders[i] = 32 end
-	-- 		if sliders[i] < 0 then sliders[i] = 0 end
-	-- 	end
-	-- end
-	--allow root note to be set from midi keyboard - doesn't work with multiple midi devices?
 	if d.type == "note_on" then
 		params:set("root_note", d.note)
 	end
@@ -479,7 +490,7 @@ function redraw()
 	screen.line_width(2.0)
 	screen.clear()
 
-	for i= 0, 15 do
+	for i=0,15 do
 		if i == edit then
 			screen.level(15)
 		else
@@ -497,9 +508,10 @@ function redraw()
 	screen.level(2)
 	screen.text("note: ")
 	screen.level(15)
-	screen.text(MusicUtil.note_num_to_name(params:get("note" .. edit+1),true) .. " ")
+  screen.text(math.floor(params:get("z_freq" .. edit+1)*100)/100 .. " hz ")
+	--screen.text(MusicUtil.note_num_to_name(params:get("note" .. edit+1),true) .. " ")
 	screen.level(2)
-	screen.text("detune: ")
+	screen.text("det: ")
 	screen.level(15)
 	screen.text(params:get("cents" .. edit+1) .. " cents")
 	screen.move(0,12)
@@ -507,8 +519,6 @@ function redraw()
 	screen.text("env: ")
 	screen.level(15)
 	screen.text(env_formatter(params:get("env" .. edit+1)))
-	--screen.text(envs[env_values[edit+1]][1])
-	--screen.text(params:get("attack" .. edit+1) .. "/" ..  params:get("decay" .. edit+1) .. " s")
 	screen.level(2)
 	screen.text(" fm index: ")
 	screen.level(15)
