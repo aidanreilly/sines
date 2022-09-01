@@ -116,6 +116,11 @@ function cleanup()
   clock.cancel(redraw_clock)
 end
 
+-- OSC input will refresh display
+function osc_in(oscpath, args, from)
+  screen_dirty = true
+end
+osc.event = osc_in
 
 function is_prev_16n_slider_v_crossing(mode, i, v)
   local prev_v = prev_16n_slider_v[mode][i]
