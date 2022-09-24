@@ -225,8 +225,8 @@ function add_params()
           params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(480, 48000, 'lin', 100, 48000,'hz'))
           params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
 	end
-	build_scale()
 	params:read()
+  params:bang()
 end
 
 function build_scale()
