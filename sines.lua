@@ -1,37 +1,45 @@
---- ~ sines 0.92 ~
--- @oootini, @eigen, @sixolet, @x2mirko
+--- sines v1.0.0 ~
+-- @oootini
+-- @p3r7, @sixolet, @tomwaters,
+-- @JosueArias, @x2mirko
+-- z_tuning lib by @zebra
 --
---   ~~    ~~    ~~    ~~    ~~    ~~
---  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
--- ~    ~~    ~~    ~~    ~~    ~~    ~
+-- ,-.   ,-.   ,-.
+--    `-'   `-'   `-'
 --
 -- ▼ controls ▼
+-- E2 - select sine
+-- E3 - selected sine volume
+-- K2 - toggle sines/ctrl
+-- K3 - reset + toggle env/follow
 --
--- E1     - master volume
--- E2    - active sine
---
--- active sine control:
--- E3      - amplitude
--- K2 + E2 - note
--- K2 + E3 - detune
--- K2 + K3 - voice panning
--- K3 + E2 - envelope
--- K3 + E3 - FM index
--- K1 + E2 - sample rate
--- K1 + E3 - bit depth
---
--- sine control w/ 16n:
--- n                - amplitude
--- n + K2           - detune
--- n + K3           - FM index
--- n + K1 + K2      - sample rate
--- n + K1 + K3      - bit depth
--- n + K1 + K2 + K3 - note
+-- 16n control
+-- n - sine volume
 
-local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+-- crow
+-- E1 - select crow config
+
+-- z_tuning
+-- configure in parameters > edit > Z_TUNING
+
 local max_slider_size = 32
+local sliders = {}
+local fader_follow_vals = {}
+local prev_vols = {}
+local fader_abs_vals = {}
+local follow_clocks = {}
+
+for i = 1, 16 do
+  fader_follow_vals[i] = 0
+  fader_abs_vals[i] = 0
+  prev_vols[i] = 0
+  sliders[i] = 0
+  follow_clocks[i] = i
+end
+
 local edit = 1
 local accum = 1
+local params_select = 1
 -- env_name, env_bias, attack, decay. bias of 1.0 is used to create a static drone
 local envs = {
   {"drone", 1.0, 1.0, 1.0},
@@ -51,6 +59,7 @@ local envs = {
   {"evolve3", 0.3, 20.0, 12.0},
   {"evolve4", 0.4, 25.0, 15.0}
 }
+
 local env_values = {}
 local env_edit = 1
 local env_accum = 1
@@ -60,26 +69,51 @@ local step = 0
 local cents = {}
 local notes = {}
 local scale_names = {}
-local key_1_pressed = 0
-local key_2_pressed = 0
-local key_3_pressed = 0
-local toggle = false
 local scale_toggle = false
+local control_toggle = false
+-- active state for sliders, params 0-3
+local current_state = {15, 2, 2, 2, 2}
 local prev_16n_slider_v = {
-  vol = {},
-  cents = {},
-  fm_index = {},
-  smpl_rate = {},
-  bit_depth = {},
-  note = {},
+  vol = {}
 }
+
 local fps = 14
-local redraw_clock
 local screen_dirty = false
 
-engine.name = "Sines"
-MusicUtil = require "musicutil"
-_16n = include "sines/lib/16n"
+local crow_option = {"quad v/o", "v/o + env"}
+-- crow_outs maps individual sine synth outputs to crow outs 1-4 as hz > 1v/oct
+local crow_outs = {
+  {1, 3, 5, 7},
+  {1, 5, 8, 10},
+  {1, 5, 8, 12},
+  {1, 5, 8, 11},
+  {1, 5, 9, 11},
+  {1, 6, 8, 11},
+  {1, 4, 8, 12},
+  {1, 4, 8, 10},
+  {1, 4, 8, 11},
+  {1, 4, 7, 10},
+  {1, 4, 7, 11},
+  {1, 5, 9, 12}
+}
+-- crow_out_pairs maps a pair of 16n synth outputs to crow outs 1&2, 3&4 as 1v/oct + attack-decay env pairs
+local crow_out_pairs = {}
+
+local sample_bitrates = {
+  {"hifi", 48000, 24},
+  {"clean1", 44100, 12},
+  {"clean2", 32000, 10},
+  {"clean3", 28900, 10},
+  {"grunge1", 34800, 6},
+  {"grunge2", 30700, 6},
+  {"grunge3", 28600, 6},
+  {"lofi1", 24050, 5},
+  {"lofi2", 20950, 4},
+  {"lofi3", 15850, 3},
+  {"crush1", 10000, 3},
+  {"crush2", 6000, 2},
+  {"crush3", 800, 1}
+}
 
 local g = grid.connect()
 local grid_width = g.cols
@@ -94,41 +128,89 @@ if util.string_starts(g.name, 'monome 64 m64')
     monobright = true
 end
 
+engine.name = "Sines"
+_mods = require 'core/mods'
+_16n = include "sines/lib/16n"
+MusicUtil = require "musicutil"
+
 function init()
-  print("loaded Sines engine")
+  print("loaded Sines engine ~")
   add_params()
+
   edit = 0
   for i = 1, 16 do
     env_values[i] = params:get("env" .. i)
-    cents[i] = params:get("cents" .. i)
-    sliders[i] = (params:get("vol" .. i)) * max_slider_size
+    if not z_tuning then
+      cents[i] = params:get("cents" .. i)
+    end
+        sliders[i] = (params:get("vol" .. i)) * max_slider_size
+    prev_vols[i] = params:get("vol" .. i)
+  end
+  -- create crow_out_pairs array of eg., {"1n + 2n", 1, 2}, {"1n + 3n", 1, 3}, etc
+  for i = 1, 15 do
+    pair = "1n + " .. i + 1 .. "n"
+    crow_out_pairs[i] = {pair, 1, i + 1}
   end
 
   _16n.init(_16n_slider_callback)
   for i = 1, 16 do
-    prev_16n_slider_v["vol"][i] = util.linlin(0.0, 1.0, 0, 127, params:get("vol"..i))
-    prev_16n_slider_v["cents"][i] = util.linlin(-200, 200, 0, 127, params:get("cents"..i))
-    prev_16n_slider_v["fm_index"][i] = util.linlin(0.0, 200.0, 0, 127, params:get("fm_index"..i))
-    prev_16n_slider_v["smpl_rate"][i] = util.linlin(48000, 480, 0, 127, params:get("smpl_rate"..i))
-    prev_16n_slider_v["bit_depth"][i] = util.linlin(24, 1, 0, 127, params:get("bit_depth"..i))
-    prev_16n_slider_v["note"][i] = params:get("note"..i)
+    prev_16n_slider_v["vol"][i] = util.linlin(0.0, 1.0, 0, 127, params:get("vol" .. i))
   end
 
-  redraw_clock = clock.run(
-    function()
-      local step_s = 1 / fps
-      while true do
-        clock.sleep(step_s)
-        if screen_dirty then
-          redraw()
-          screen_dirty = false
+  for i = 1, 16 do
+    follow_clocks[i] = clock.run(
+      function()
+        local step_s = 1 / fps
+        while true do
+          clock.sleep(step_s)
+          if screen_dirty then
+            set_active()
+            redraw()
+            screen_dirty = false
+          end
+          fader_abs_vals[i] = params:get("fader" .. i)
+          fader_follow_vals[i] = follow_countdown(i, fader_abs_vals[i])
+          if params:get("play_mode") == 1 then
+            if math.abs(fader_follow_vals[i] - fader_abs_vals[i]) > 10 then
+              engine.vol(i - 1 , util.linexp(0, 127, 0.0, 1.0, fader_follow_vals[i]) * 0.2)
+            end
+            if fader_follow_vals[i] == 0 then
+              --reset slider to 0
+              sliders[i] = 0
+            end
+          end
         end
-      end
-    end)
+        screen_dirty = false
+      end)
+  end
+
+  -- check if z_tuning
+  local ztuning
+  if _mods.is_enabled('z_tuning') then
+    z_tuning = require('z_tuning/lib/mod')
+  end
+
+  -- if z_tuning, configure and refresh all sine freqs when z_tuning changes
+  if z_tuning then
+    z_tuning.set_tuning_change_callback(
+      function()
+        local num, hz
+        for voice = 1, 16 do
+          num = params:get("note" .. voice)
+          hz = MusicUtil.note_num_to_freq(num)
+          engine.hz(voice - 1, hz)
+        end
+        if norns.crow.connected() then
+          set_crow()
+        end
+      end)
+  end
 end
 
 function cleanup()
-  clock.cancel(redraw_clock)
+  for i = 1, 16 do
+    clock.cancel(follow_clocks[i])
+  end
 end
 
 function is_prev_16n_slider_v_crossing(mode, i, v)
@@ -146,101 +228,123 @@ function is_prev_16n_slider_v_crossing(mode, i, v)
 end
 
 function _16n_slider_callback(midi_msg)
-  local slider_id = _16n.cc_2_slider_id(midi_msg.cc)
-  local v = midi_msg.val
-
   if params:string("16n_auto") == "no" then
-    return
+  return
   end
+  if midi_msg.type == "cc" then
+    local slider_id = _16n.cc_2_slider_id(midi_msg.cc)
+    local v = midi_msg.val
 
-  -- update current slider
-  params:set("fader" .. slider_id, v)
+    -- update current slider
+    params:set("fader" .. slider_id, v)
+  end
 end
 
 function virtual_slider_callback(slider_id, v)
   accum = slider_id - 1
   edit = accum
 
-  if key_1_pressed == 0 and key_3_pressed == 0 and key_2_pressed == 0 then
-    if is_prev_16n_slider_v_crossing("vol", slider_id, v) then
-      params:set("vol" .. edit + 1, util.linlin(0, 127, 0.0, 1.0, v))
-      prev_16n_slider_v["vol"][slider_id] = v
-    end
-  elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
-    if is_prev_16n_slider_v_crossing("cents", slider_id, v) then
-      params:set("cents" .. edit + 1, util.linlin(0, 127, -200, 200, v))
-      prev_16n_slider_v["cents"][slider_id] = v
-    end
-  elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
-    if is_prev_16n_slider_v_crossing("fm_index", slider_id, v) then
-      params:set("fm_index" .. edit + 1, util.linlin(0, 127, 0.0, 200.0, v))
-      prev_16n_slider_v["fm_index"][slider_id] = v
-    end
-  elseif key_1_pressed == 1 and key_2_pressed == 1 and key_3_pressed == 0 then
-    if is_prev_16n_slider_v_crossing("smpl_rate", slider_id, v) then
-      params:set("smpl_rate" .. edit + 1, util.linlin(0, 127, 48000, 480, v))
-      prev_16n_slider_v["smpl_rate"][slider_id] = v
-    end
-  elseif key_1_pressed == 1 and key_2_pressed == 0 and key_3_pressed == 1 then
-    if is_prev_16n_slider_v_crossing("bit_depth", slider_id, v) then
-      params:set("bit_depth" .. edit + 1, util.linlin(0, 127, 24, 1, v))
-      prev_16n_slider_v["bit_depth"][slider_id] = v
-    end
-  elseif key_1_pressed == 1 and key_2_pressed == 1 and key_3_pressed == 1 then
-    if is_prev_16n_slider_v_crossing("note", slider_id, v) then
-      params:set("note" .. edit + 1, v)
-      prev_16n_slider_v["note"][slider_id] = v
-    end
+  if is_prev_16n_slider_v_crossing("vol", slider_id, v) then
+    params:set("vol" .. edit + 1, util.linlin(0, 127, 0.0, 1.0, v))
+    prev_16n_slider_v["vol"][slider_id] = v
   end
+
   screen_dirty = true
 end
 
 function add_params()
-  --set the scale note values
+  -- set the scale note values
   for i = 1, #MusicUtil.SCALES do
     table.insert(scale_names, string.lower(MusicUtil.SCALES[i].name))
   end
+
   params:add{type = "option", id = "scale_mode", name = "scale mode",
-    options = scale_names, default = 5,
-  action = function() set_notes() end}
+    options = scale_names, default = 5, action = function() set_notes() end}
+
   params:add{type = "number", id = "root_note", name = "root note",
   min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function() set_notes() end}
+
+  -- crow params
+  params:add_group("crow", 3)
+  params:add{type = "number", id = "crow_config", name = "crow config", min = 1, max = 2, default = 2, formatter = function(param) return crow_config_formatter(param:get()) end, action = function() set_crow() end}
+
+  -- crow out quad v/o
+  params:add{type = "number", id = "crow_out_vo", name = "crow v/o", min = 1, max = 12, default = 5, formatter = function(param) return crow_out_formatter(param:get()) end}
+
+  -- crow out pairs
+  params:add{type = "number", id = "crow_out_pairs", name = "crow v/o + env", min = 1, max = 15, default = 4, formatter = function(param) return crow_out_pairs_formatter(param:get()) end, action = function() set_crow() end}
+
+  -- 16n control
   params:add{type = "option", id = "16n_auto", name = "auto bind 16n", options = {"yes", "no"}, default = 1}
-  params:add{type = "option", id = "16n_params_jump", name = "16n params jumps", options = {"yes", "no"}, default = 1}
-  --amp slew
+  params:add{type = "option", id = "16n_params_jump", name = "16n param jumps", options = {"yes", "no"}, default = 2}
+
+  -- amp slew
   params:add_control("amp_slew", "amp slew", controlspec.new(0.01, 10, 'lin', 0.01, 0.01, 's'))
   params:set_action("amp_slew", function(x) set_amp_slew(x) end)
-  --set virtual faders params
+
+  -- global pan settings
+  params:add{type = "number", id = "global_pan", name = "global panning", min = 0, max = 1, default = 0, formatter = function(param) return global_pan_formatter(param:get()) end, action = function(x) set_global_pan(x) end}
+
+  -- reset style
+  params:add{type = "option", id = "reset_style", name = "fader reset style", options = {"return", "zeroed"}, default = 2}
+
+  -- play mode
+  params:add{type = "number", id = "play_mode", name = "fader play mode", min = 0, max = 1, default = 0, formatter = function(param) return play_mode_formatter(param:get()) end, action = function(x) set_play_mode(x) end}
+
+  -- set voice params
+  for i = 1, 16 do
+    params:add_group(i .. "n voice", 13)
+
+    -- set voice vols
+    params:add_control("vol" .. i,  i .. "n vol", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
+    params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
+
+    params:add{type = "number", id = "pan" ..i, name = i .. "n pan", min = -1, max = 1, default = 0, formatter = function(param) return pan_formatter(param:get()) end, action = function(x) set_synth_pan(i - 1, x) end}
+
+    params:add{type = "number", id = "note" ..i, name = i .. "n note", min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
+
+    if not z_tuning then
+      params:add_control("cents" .. i, i .. "n cents detune", controlspec.new(-200, 200, 'lin', 1, 0, 'cents'))
+      params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
+    end
+
+    params:add_control("fm_index" .. i, i .. "n fm index", controlspec.new(0.0, 200.0, 'lin', 1.0, 3.0))
+    params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
+
+    params:add{type = "number", id = "env" ..i, name = i .. "n env", min = 1, max = 16, default = 1, formatter = function(param) return env_formatter(param:get()) end, action = function(x) set_env(i, x) end}
+
+    params:add_control("attack" .. i, i .. "n attack", controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0, 's'))
+    params:set_action("attack" .. i, function(x) set_amp_atk(i - 1, x) end)
+
+    params:add_control("decay" .. i, i .. "n decay", controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0, 's'))
+    params:set_action("decay" .. i, function(x) set_amp_rel(i - 1, x) end)
+
+    params:add_control("env_bias" .. i, i .. "n bias", controlspec.new(0.0, 1.0, 'lin', 0.1, 1.0))
+    params:set_action("env_bias" .. i, function(x) set_env_bias(i - 1, x) end)
+
+    params:add{type = "number", id = "eoc_delay" .. i, name = i .. "n env delay", min = 0, max = 2000, default = 0, formatter = function(param) return eoc_delay_formatter(param:get()) end, action = function(x) set_amp_eoc_delay(i - 1, x) end}
+
+    params:add{type = "number", id = "sample_bitrate" .. i, name = i .. "n smpl bitrate", min = 1, max = 13, default = 1, formatter = function(param) return sample_bitrate_formatter(param:get()) end, action = function(x) set_sample_bitrate(i, x) end}
+
+    params:add_control("bit_depth" .. i, i .. "n bit depth", controlspec.new(1, 24, 'lin', 1, 24, 'bits'))
+    params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
+
+    params:add_control("smpl_rate" .. i, i .. "n sample rate", controlspec.new(480, 48000, 'lin', 100, 48000, 'hz'))
+    params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
+  end
+
+  -- set virtual faders params
   params:add_group("virtual faders", 16)
   for i = 1, 16 do
     params:add{type = "number", id = "fader" ..i, name = "fader " .. i, min = 0, max = 127, default = 0, action = function(v) virtual_slider_callback(i, v) end}
   end
-  --set voice params
-  for i = 1, 16 do
-    params:add_group("voice " .. i .. " params", 11)
-    --set voice vols
-    params:add_control("vol" .. i, "vol " .. i, controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
-    params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
-    params:add{type = "number", id = "pan" ..i, name = "pan " .. i, min = -1, max = 1, default = 0, formatter = function(param) return pan_formatter(param:get()) end, action = function(x) set_synth_pan(i - 1, x) end}
-    params:add{type = "number", id = "note" ..i, name = "note " .. i, min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
-    params:add_control("cents" .. i, "cents detune " .. i, controlspec.new(-200, 200, 'lin', 1, 0, 'cents'))
-    params:set_action("cents" .. i, function(x) tune(i - 1, x) end)
-    params:add_control("fm_index" .. i, "fm index " .. i, controlspec.new(0.0, 200.0, 'lin', 1.0, 3.0))
-    params:set_action("fm_index" .. i, function(x) set_fm_index(i - 1, x) end)
-    params:add{type = "number", id = "env" ..i, name = "env " .. i, min = 1, max = 16, default = 1, formatter = function(param) return env_formatter(param:get()) end, action = function(x) set_env(i, x) end}
-    params:add_control("attack" .. i, "env attack " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0, 's'))
-    params:set_action("attack" .. i, function(x) set_amp_atk(i - 1, x) end)
-    params:add_control("decay" .. i, "env decay " .. i, controlspec.new(0.01, 15.0, 'lin', 0.01, 1.0, 's'))
-    params:set_action("decay" .. i, function(x) set_amp_rel(i - 1, x) end)
-    params:add_control("env_bias" .. i, "env bias " .. i, controlspec.new(0.0, 1.0, 'lin', 0.1, 1.0))
-    params:set_action("env_bias" .. i, function(x) set_env_bias(i - 1, x) end)
-    params:add_control("bit_depth" .. i, "bit depth " .. i, controlspec.new(1, 24, 'lin', 1, 24, 'bits'))
-    params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
-    params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(480, 48000, 'lin', 100, 48000, 'hz'))
-    params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
-  end
+
   params:read()
   params:bang()
+
+  if norns.crow.connected() then
+    set_crow()
+  end
 end
 
 function build_scale()
@@ -256,11 +360,95 @@ function set_notes()
   scale_toggle = true
   for i = 1, 16 do
     params:set("note" .. i, notes[i])
+    --TODO this is currently unused, is that right?
+    local hz_value = MusicUtil.note_num_to_freq(notes[i])
+    if norns.crow.connected() then
+      set_crow()
+    end
+  end
+end
+
+function hz_to_1voct(hz, root_freq)
+  local v_oct = math.log10(hz/root_freq)/math.log10(2)
+  return v_oct
+end
+
+function set_crow_notes()
+  -- quad vo
+  for i = 1, 4 do
+    local crow_voice = crow_outs[params:get("crow_out_vo")][i]
+    if z_tuning then
+      local hz = MusicUtil.note_num_to_freq(params:get("note" .. crow_voice))
+      crow.output[i].volts = hz_to_1voct(hz, params:get("zt_root_freq"))
+    else
+      crow.output[i].volts = params:get("note" .. crow_voice)/12
+    end
+  end
+end
+
+function set_crow_note_env_pairs()
+  --vo env pairs
+  local i = params:get("crow_out_pairs")
+  if z_tuning then
+    -- 1n v/o output
+    crow.output[1].volts = hz_to_1voct(MusicUtil.note_num_to_freq(params:get("note" .. 1)), params:get("zt_root_freq"))
+    -- n v/o output
+    crow.output[3].volts = hz_to_1voct(MusicUtil.note_num_to_freq(params:get("note" .. i)), params:get("zt_root_freq"))
+  else
+    crow.output[1].volts = params:get("note1")/12
+    crow.output[3].volts = params:get("note" .. i)/12
+  end
+  -- crow out 2 env is always attached to 1n output
+  local crow_out_2_env_atk = params:get("attack1")
+  local crow_out_2_env_dec = params:get("decay1")
+  crow.output[2].action = "loop( { ar("..crow_out_2_env_atk..", "..crow_out_2_env_dec..", 7, 'log') } )"
+  crow.output[2]()
+  -- crow out 4 env
+  local crow_out_4_env_atk = params:get("attack" .. i + 1)
+  local crow_out_4_env_dec = params:get("decay"  .. i + 1)
+  crow.output[4].action = "loop( { ar("..crow_out_4_env_atk..", "..crow_out_4_env_dec..", 7, 'log') } )"
+  crow.output[4]()
+end
+
+function set_crow()
+  if params:get("crow_config") == 1 then
+    set_crow_notes()
+  elseif params:get("crow_config") == 2 then
+    set_crow_note_env_pairs()
+  end
+end
+
+function set_play_mode(x)
+  if x == 0 then
+    -- faders
+    for i = 1,16 do
+      if params:string("reset_style") == "return" then
+        params:set("vol" .. i, prev_vols[i])
+        sliders[i] = math.floor(util.linlin(0.0, 1.0, 0, 32, prev_vols[i]))
+      elseif params:string("reset_style") == "zeroed" then
+        params:set("vol" .. i, 0)
+      end
+      -- put back the env
+      params:set("env" .. i, params:get("env" .. i))
+      screen_dirty = true
+    end
+    params:set("amp_slew", 0.1)
+  elseif x == 1 then
+    -- env follower
+    for i = 1,16 do
+      -- this is very goofy
+      prev_vols[i] = params:get("vol" .. i)
+      params:set("vol" .. i, 0)
+      -- hijack the env and sliders values
+      set_env(i, 1)
+      sliders[i] = 0
+    end
+    params:set("amp_slew", 0.6)
   end
 end
 
 function set_amp_slew(slew_rate)
-  -- set the slew rate for every voice 
+  -- set the slew rate for every voice
   for i = 0, 15 do
     engine.amp_slew(i, slew_rate)
   end
@@ -268,15 +456,21 @@ end
 
 function set_note(synth_num, value)
   notes[synth_num] = value
-  --also reset the cents value here too
-  params:set("cents" .. synth_num + 1, 0)
-  engine.hz(synth_num, MusicUtil.note_num_to_freq(notes[synth_num]))
+  -- also reset the cents value here too
+  if not z_tuning then
+    params:set("cents" .. synth_num + 1, 0)
+  end
+  local hz_value = MusicUtil.note_num_to_freq(notes[synth_num])
+  engine.hz(synth_num, hz_value)
   engine.hz_lag(synth_num, 0.005)
   if scale_toggle then
-    --do nothing
+    -- do nothing
   end
   if not scale_toggle then
     edit = synth_num
+  end
+  if norns.crow.connected() then
+    set_crow()
   end
   screen_dirty = true
 end
@@ -291,7 +485,6 @@ end
 function set_vol(synth_num, value)
   engine.vol(synth_num, value * 0.2)
   edit = synth_num
-
   -- update displayed sine value
   local s_id = (synth_num + 1)
   sliders[s_id] = math.floor(util.linlin(0.0, 1.0, 0, max_slider_size, value))
@@ -299,11 +492,19 @@ function set_vol(synth_num, value)
   screen_dirty = true
 end
 
+function follow_countdown(i, abs_val)
+  local count = fader_follow_vals[i]
+  if count ~= abs_val then
+    count = util.clamp(count - 1, 0, 127)
+  end
+  return count
+end
+
 function tune(synth_num, value)
-  --calculate new tuned value from cents value + midi note
-  --https://music.stackexchange.com/questions/17566/how-to-calculate-the-difference-in-cents-between-a-note-and-an-arbitrary-frequen
+  -- calculate new tuned value from cents value + midi note
+  -- https://music.stackexchange.com/questions/17566/how-to-calculate-the-difference-in-cents-between-a-note-and-an-arbitrary-frequen
   local detuned_freq = (math.pow(10, value / 3986)) * MusicUtil.note_num_to_freq(notes[synth_num])
-  --round to 2 decimal points
+  -- round to 2 decimal points
   detuned_freq = math.floor((detuned_freq) * 10 / 10)
   set_freq(synth_num, detuned_freq)
   edit = synth_num
@@ -311,15 +512,51 @@ function tune(synth_num, value)
 end
 
 function set_env(synth_num, value)
-  --env_name, env_bias, attack, decay
+  -- env_name, env_bias, attack, decay
   params:set("env_bias" .. synth_num, envs[value][2])
   params:set("attack" .. synth_num, envs[value][3])
   params:set("decay" .. synth_num, envs[value][4])
+  if norns.crow.connected() then
+    set_crow()
+  end
 end
 
 function env_formatter(value)
   local env_name = envs[value][1]
   return (env_name)
+end
+
+function crow_out_formatter(num)
+  -- return the list as a string
+  local crow_output = table.concat(crow_outs[num], ",")
+  return (crow_output)
+end
+
+function crow_config_formatter(num)
+  local crow_config = crow_option[num]
+  return (crow_config)
+end
+
+function crow_out_pairs_formatter(num)
+  -- return the pair as a string
+  local crow_output_pairs = crow_out_pairs[num][1]
+  return (crow_output_pairs)
+end
+
+function eoc_delay_formatter(value)
+  local eoc_delay_ms = value/100
+  return (eoc_delay_ms)
+end
+
+function sample_bitrate_formatter(value)
+  local sample_bitrate_preset = sample_bitrates[value][1]
+  return (sample_bitrate_preset)
+end
+
+function set_sample_bitrate(synth_num, value)
+  params:set("smpl_rate" .. synth_num, sample_bitrates[value][2])
+  params:set("bit_depth" .. synth_num, sample_bitrates[value][3])
+  screen_dirty = true
 end
 
 function set_fm_index(synth_num, value)
@@ -336,6 +573,12 @@ end
 
 function set_amp_rel(synth_num, value)
   engine.amp_rel(synth_num, value)
+  edit = synth_num
+  screen_dirty = true
+end
+
+function set_amp_eoc_delay(synth_num, value)
+  engine.eoc_delay(synth_num, value/100)
   edit = synth_num
   screen_dirty = true
 end
@@ -364,56 +607,79 @@ function set_synth_pan(synth_num, value)
 end
 
 function pan_formatter(value)
-  if value == 1 then
+  if value == -1 then
     text = "right"
   elseif value == 0 then
     text = "middle"
-  elseif value == -1 then
+  elseif value == 1 then
     text = "left"
   end
   return (text)
 end
 
-function set_pan()
-  -- pan position on the bus, -1 is left, 1 is right
-  if key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 1 then
-    toggle = not toggle
-    if toggle then
-      --set hard l/r pan values
-      for i = 1, 16 do
-        if i % 2 == 0 then
-          --even, pan right
-          set_synth_pan(i, 1)
-          params:set("pan" .. i, 1)
-        elseif i % 2 == 1 then
-          --odd, pan left
-          set_synth_pan(i, -1)
-          params:set("pan" .. i, -1)
-        end
-      end
+function global_pan_formatter(value)
+  if value == 0 then
+    text = "middle"
+  elseif value == 1 then
+    text = "left/right"
+  end
+  return (text)
+end
+
+function play_mode_formatter(value)
+  if value == 0 then
+    text = "fader"
+  elseif value == 1 then
+    text = "env follower"
+  end
+  return (text)
+end
+
+function set_active()
+  if control_toggle then
+    -- set params
+    if params_select == 0 then
+      current_state = {5, 15, 2, 2, 2}
+    elseif params_select == 1 then
+      current_state = {5, 2, 15, 2, 2}
+    elseif params_select == 2 then
+      current_state = {5, 2, 2, 15, 2}
+    elseif params_select == 3 then
+      current_state = {5, 2, 2, 2, 15}
     end
-    if not toggle then
-      for i = 1, 16 do
-        set_synth_pan(i, 0)
-        params:set("pan" .. i, 0)
+  else
+    -- set sliders active
+    current_state = {15, 2, 2, 2, 2}
+  end
+  screen_dirty = true
+end
+
+function set_global_pan(value)
+  -- pan position on the bus, 0 is middle, 1 is l/r
+  if value == 0 then
+    for i = 1, 16 do
+      set_synth_pan(i, 0)
+      params:set("pan" .. i, 0)
+    end
+  elseif value == 1 then
+    for i = 1, 16 do
+      if i % 2 == 0 then
+        -- even, pan right
+        set_synth_pan(i, 1)
+        params:set("pan" .. i, 1)
+      elseif i % 2 == 1 then
+        -- odd, pan left
+        set_synth_pan(i, -1)
+        params:set("pan" .. i, -1)
       end
     end
   end
 end
 
---update when a cc change is detected
+-- update when a cc change is detected
 m = midi.connect()
 m.event = function(data)
-  local d = midi.to_msg(data)
-  -- if d.type == "cc" then
-  -- --set all the sliders + fm values
-  -- for i = 1,16 do
-  -- sliders[i] = (params:get("vol" .. i))*32 - 1
-  -- if sliders[i] > 32 then sliders[i] = 32 end
-  -- if sliders[i] < 0 then sliders[i] = 0 end
-  -- end
-  -- end
-  --allow root note to be set from midi keyboard - doesn't work with multiple midi devices?
+local d = midi.to_msg(data)
   if d.type == "note_on" then
     params:set("root_note", d.note)
   end
@@ -422,74 +688,82 @@ end
 
 function enc(n, delta)
   if n == 1 then
-    if key_1_pressed == 0 then
-      params:delta('output_level', delta)
+    if control_toggle then
+      -- select params line 0-3
+     params_select = (params_select + delta) % 4
     end
   elseif n == 2 then
-    if key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 0 then
-      --navigate up/down the list of sliders
-      --accum wraps around 0-15
+    if control_toggle then
+      if params_select == 0 then
+        -- increment the note value with delta
+        if not z_tuning then
+          params:set("note" .. edit + 1, params:get("note" .. edit + 1) + delta)
+          local synth_num =  edit + 1
+          local hz_value = MusicUtil.note_num_to_freq(notes[synth_num])
+        end
+        if norns.crow.connected() then
+          set_crow()
+        end
+      elseif params_select == 1 then
+        -- envl
+        params:set("env" .. edit + 1, params:get("env" .. edit + 1) + delta)
+      elseif params_select == 2 then
+        -- smpl
+        params:set("sample_bitrate" .. edit + 1, params:get("sample_bitrate" .. edit + 1) + (delta))
+      elseif params_select == 3 then
+        -- pan
+        params:set("pan" .. edit + 1, params:get("pan" .. edit + 1) + (delta))
+      end
+    elseif not control_toggle then
+      -- navigate up/down the list of sliders
+      -- accum wraps around 0-15
       accum = (accum + delta) % 16
       --edit is the slider number
       edit = accum
-
-    elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
-      params:set("env" .. edit + 1, params:get("env" .. edit + 1) + delta)
-      --env_accum = (env_accum + delta) % 16
-      --env_edit is the env_values selector
-      --env_edit = env_accum
-      --change the AD env values
-      --env_values[edit+1] = env_edit+1
-      --set the env
-      --set_env(edit+1, env_edit+1)
-
-    elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
-      -- increment the note value with delta
-      params:set("note" .. edit + 1, params:get("note" .. edit + 1) + delta)
-
-    elseif key_1_pressed == 1 and key_2_pressed == 0 and key_3_pressed == 0 then
-      --set sample rate
-      params:set("smpl_rate" .. edit + 1, params:get("smpl_rate" .. edit + 1) + (delta) * 1000)
     end
-
   elseif n == 3 then
-    if key_1_pressed == 0 and key_3_pressed == 0 and key_2_pressed == 0 then
-      --set the slider value
+    if control_toggle then
+      if params_select == 0 then
+        -- detune
+        if not z_tuning then
+          params:set("cents" .. edit + 1, params:get("cents" .. edit + 1) + delta)
+        end
+      elseif params_select == 1 then
+        -- env delay
+        params:set("eoc_delay" .. edit + 1, params:get("eoc_delay" .. edit + 1) + delta)
+      elseif params_select == 2 then
+        -- fm index
+        params:set("fm_index" .. edit + 1, params:get("fm_index" .. edit + 1) + delta)
+      elseif params_select == 3 then
+        -- crow
+        if params:get("crow_config") == 1 then
+          params:set("crow_out_vo", params:get("crow_out_vo") + delta)
+        elseif params:get("crow_config") == 2 then
+          params:set("crow_out_pairs", params:get("crow_out_pairs") + delta)
+        end
+      end
+    elseif not control_toggle then
+      -- current slider amplitude
       local new_v = sliders[edit + 1] + (delta * 2)
       local amp_value = util.linlin(0, max_slider_size, 0.0, 1.0, new_v)
       params:set("vol" .. edit + 1, amp_value)
-    elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
-      --set the cents value to increment by
-      params:set("cents" .. edit + 1, params:get("cents" .. edit + 1) + delta)
-
-    elseif key_1_pressed == 0 and key_2_pressed == 0 and key_3_pressed == 1 then
-      -- set the fm value
-      params:set("fm_index" .. edit + 1, params:get("fm_index" .. edit + 1) + delta)
-
-    elseif key_1_pressed == 1 and key_2_pressed == 0 and key_3_pressed == 0 then
-      --set bit depth
-      params:set("bit_depth" .. edit + 1, params:get("bit_depth" .. edit + 1) + delta)
     end
   end
   screen_dirty = true
 end
 
 function key(n, z)
-  --use these keypress variables to add extra functionality on key hold
-  if n == 1 and z == 1 then
-    key_1_pressed = 1
-  elseif n == 1 and z == 0 then
-    key_1_pressed = 0
-  elseif n == 2 and z == 1 then
-    key_2_pressed = 1
-  elseif n == 2 and z == 0 then
-    key_2_pressed = 0
+  if n == 2 and z == 1 then
+    control_toggle = not control_toggle
   elseif n == 3 and z == 1 then
-    key_3_pressed = 1
-  elseif n == 3 and z == 0 then
-    key_3_pressed = 0
+    if params:get("play_mode") == 0 then
+      -- faders
+      params:set("play_mode", 1)
+    elseif params:get("play_mode") == 1 then
+      -- env follower
+      params:set("play_mode", 0)
+    end
   end
-  set_pan()
   screen_dirty = true
 end
 
@@ -516,45 +790,86 @@ function redraw_screen()
   screen.level(10)
   screen.line(32 + step * 4, 68)
   screen.stroke()
-  --display current values
-  screen.move(0, 5)
-  screen.level(2)
-  screen.text("note: ")
-  screen.level(15)
-  screen.text(MusicUtil.note_num_to_name(params:get("note" .. edit + 1), true) .. " ")
-  screen.level(2)
-  screen.text("detune: ")
-  screen.level(15)
-  screen.text(params:get("cents" .. edit + 1) .. " cents")
+  -- display current values
+  if z_tuning then
+    screen.move(0, 5)
+    screen.level(2)
+    screen.text("ztun:")
+    screen.move(24, 5)
+    -- get the tuning state
+    tuning_table = z_tuning.get_tuning_state()
+    if tuning_table and tuning_table.selected_tuning then
+      selected_tuning_value = tuning_table.selected_tuning
+    end
+    -- clip to fit on the screen
+    screen.text(string.sub(selected_tuning_value, 1, 7))
+    screen.move(62, 5)
+    screen.level(2)
+    screen.text("root:")
+    screen.move(89, 5)
+    screen.text((string.format("%.2f", params:get("zt_root_freq"))) .. "hz")
+  else
+    screen.move(0, 5)
+    screen.level(2)
+    screen.text("note: ")
+    screen.level(current_state[2])
+    screen.move(24, 5)
+    screen.text(MusicUtil.note_num_to_name(params:get("note" .. edit + 1), true) .. " ")
+    screen.move(62, 5)
+    screen.level(2)
+    screen.text("dtun:")
+    screen.level(current_state[2])
+    screen.move(89, 5)
+    screen.text(params:get("cents" .. edit + 1) .. " cents")
+  end
   screen.move(0, 12)
   screen.level(2)
-  screen.text("env: ")
-  screen.level(15)
-  screen.text(env_formatter(params:get("env" .. edit + 1)))
-  --screen.text(envs[env_values[edit+1]][1])
-  --screen.text(params:get("attack" .. edit+1) .. "/" ..  params:get("decay" .. edit+1) .. " s")
+  screen.text("envl:")
+  screen.level(current_state[3])
+  screen.move(24, 12)
+  if params:get("play_mode") == 1 then
+    screen.text("[follow]")
+  else
+    screen.text(env_formatter(params:get("env" .. edit + 1)))
+  end
   screen.level(2)
-  screen.text(" fm index: ")
-  screen.level(15)
-  screen.text(params:get("fm_index" .. edit + 1))
+  screen.move(62, 12)
+  screen.text("envd:")
+  screen.level(current_state[3])
+  screen.move(89, 12)
+  screen.text(eoc_delay_formatter(params:get("eoc_delay" .. edit + 1)) .. " s")
   screen.move(0, 19)
   screen.level(2)
-  screen.text("smpl rate: ")
-  screen.level(15)
-  screen.text(params:get("smpl_rate" .. edit + 1) / 1000 .. "k")
+  screen.text("smpl:")
+  screen.level(current_state[4])
+  screen.move(24, 19)
+  screen.text(sample_bitrate_formatter(params:get("sample_bitrate" .. edit + 1)))
   screen.level(2)
-  screen.text(" bit dpt: ")
-  screen.level(15)
-  screen.text(params:get("bit_depth" .. edit + 1))
+  screen.move(62, 19)
+  screen.text("fmind:")
+  screen.level(current_state[4])
+  screen.move(89, 19)
+  screen.text(params:get("fm_index" .. edit + 1))
   screen.move(0, 26)
   screen.level(2)
-  screen.text("pan: ")
-  screen.level(15)
+  screen.text("pan:")
+  screen.level(current_state[5])
+  screen.move(24, 26)
   screen.text(pan_formatter(params:get("pan" .. edit + 1)))
   screen.level(2)
-  screen.text(" master vol: ")
-  screen.level(15)
-  screen.text(math.floor((params:get('output_level')) * 10 / 10) .. " dB")
+  screen.move(62, 26)
+  screen.text("crow:")
+  screen.level(current_state[5])
+  screen.move(89, 26)
+  if norns.crow.connected() then
+    if params:get("crow_config") == 1 then
+      screen.text(crow_out_formatter(params:get("crow_out_vo")))
+    elseif params:get("crow_config") == 2 then
+      screen.text(crow_out_pairs_formatter(params:get("crow_out_pairs")))
+    end
+  else
+    screen.text("none")
+  end
   screen.update()
 end
 

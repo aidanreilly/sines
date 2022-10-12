@@ -137,7 +137,7 @@ end
 
 local function mustHaveConf()
   if conf_16n == nil then
-    error("Attempted to access the 16n configuration but it didn't get retrieved.")
+    error("Attempted to access the 16n configuration but it wasn't retrieved.")
   end
 end
 
