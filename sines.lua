@@ -109,13 +109,12 @@ function init()
           screen_dirty = false
         end
       end
-  end)
+    end)
 end
 
 function cleanup()
   clock.cancel(redraw_clock)
 end
-
 
 function is_prev_16n_slider_v_crossing(mode, i, v)
   local prev_v = prev_16n_slider_v[mode][i]
@@ -183,19 +182,19 @@ end
 
 function add_params()
   --set the scale note values
-	for i = 1, #MusicUtil.SCALES do
-		table.insert(scale_names, string.lower(MusicUtil.SCALES[i].name))
-	end
-	params:add{type = "option", id = "scale_mode", name = "scale mode",
-		options = scale_names, default = 5,
-                action = function() set_notes() end}
-	params:add{type = "number", id = "root_note", name = "root note",
-                   min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
-                   action = function() set_notes() end}
-        params:add{type = "option", id = "16n_auto", name = "auto bind 16n",
-                   options = {"yes", "no"}, default = 1}
-        params:add{type = "option", id = "16n_params_jump", name = "16n params jumps",
-                   options = {"yes", "no"}, default = 1}
+  for i = 1, #MusicUtil.SCALES do
+    table.insert(scale_names, string.lower(MusicUtil.SCALES[i].name))
+  end
+  params:add{type = "option", id = "scale_mode", name = "scale mode",
+    options = scale_names, default = 5,
+  action = function() set_notes() end}
+  params:add{type = "number", id = "root_note", name = "root note",
+   min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
+ action = function() set_notes() end}
+ params:add{type = "option", id = "16n_auto", name = "auto bind 16n",
+   options = {"yes", "no"}, default = 1}
+   params:add{type = "option", id = "16n_params_jump", name = "16n params jumps",
+     options = {"yes", "no"}, default = 1}
         --set virtual faders params
         params:add_group("virtual faders", 16)
         for i = 1,16 do
@@ -224,29 +223,29 @@ function add_params()
           params:set_action("bit_depth" .. i, function(x) set_bit_depth(i - 1, x) end)
           params:add_control("smpl_rate" .. i, "sample rate " .. i, controlspec.new(480, 48000, 'lin', 100, 48000,'hz'))
           params:set_action("smpl_rate" .. i, function(x) set_sample_rate(i - 1, x) end)
-	end
-	params:read()
-  params:bang()
-end
+        end
+        params:read()
+        params:bang()
+      end
 
-function build_scale()
-	notes = MusicUtil.generate_scale_of_length(params:get("root_note"), params:get("scale_mode"), 16)
-	local num_to_add = 16 - #notes
-	for i = 1, num_to_add do
-		table.insert(notes, notes[16 - num_to_add])
-	end
-end
+      function build_scale()
+       notes = MusicUtil.generate_scale_of_length(params:get("root_note"), params:get("scale_mode"), 16)
+       local num_to_add = 16 - #notes
+       for i = 1, num_to_add do
+        table.insert(notes, notes[16 - num_to_add])
+      end
+    end
 
-function set_notes()
-	build_scale()
-	scale_toggle = true
-	for i = 1,16 do
-		params:set("note" .. i, notes[i])
-	end
-end
+    function set_notes()
+     build_scale()
+     scale_toggle = true
+     for i = 1,16 do
+      params:set("note" .. i, notes[i])
+    end
+  end
 
-function set_note(synth_num, value)
-	notes[synth_num] = value
+  function set_note(synth_num, value)
+   notes[synth_num] = value
 	--also reset the cents value here too
 	params:set("cents" .. synth_num + 1, 0)
 	engine.hz(synth_num, MusicUtil.note_num_to_freq(notes[synth_num]))
@@ -268,7 +267,7 @@ function set_freq(synth_num, value)
 end
 
 function set_vol(synth_num, value)
-	engine.vol(synth_num, value)
+	engine.vol(synth_num, value * 0.3)
 	edit = synth_num
 
         -- update displayed sine value
@@ -276,9 +275,9 @@ function set_vol(synth_num, value)
         sliders[s_id] = math.floor(util.linlin(0.0, 1.0, 0, 32, value))
 
         screen_dirty = true
-end
+      end
 
-function tune(synth_num, value)
+      function tune(synth_num, value)
 	--calculate new tuned value from cents value + midi note
 	--https://music.stackexchange.com/questions/17566/how-to-calculate-the-difference-in-cents-between-a-note-and-an-arbitrary-frequen
 	local detuned_freq = (math.pow(10, value/3986))*MusicUtil.note_num_to_freq(notes[synth_num])
@@ -384,7 +383,7 @@ end
 --update when a cc change is detected
 m = midi.connect()
 m.event = function(data)
-	local d = midi.to_msg(data)
+local d = midi.to_msg(data)
 	-- if d.type == "cc" then
 	-- 	--set all the sliders + fm values
 	-- 	for i = 1,16 do
@@ -424,11 +423,11 @@ function enc(n, delta)
                         --set the env
                         --set_env(edit+1, env_edit+1)
 
-		elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
+                      elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
                   -- increment the note value with delta
-			params:set("note" .. edit+1, params:get("note" .. edit+1) + delta)
+                  params:set("note" .. edit+1, params:get("note" .. edit+1) + delta)
 
-		elseif key_1_pressed == 1 and key_2_pressed == 0 and key_3_pressed == 0 then
+                elseif key_1_pressed == 1 and key_2_pressed == 0 and key_3_pressed == 0 then
 			--set sample rate
 			params:set("smpl_rate" .. edit+1, params:get("smpl_rate" .. edit+1) + (delta) * 1000)
 		end
@@ -436,10 +435,10 @@ function enc(n, delta)
 	elseif n == 3 then
 		if key_1_pressed == 0 and key_3_pressed == 0 and key_2_pressed == 0 then
 			--set the slider value
-                        local new_v = sliders[edit+1] + (delta * 2)
-			local amp_value = util.linlin(0, 32, 0.0, 1.0, new_v)
-			params:set("vol" .. edit+1, amp_value)
-		elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
+      local new_v = sliders[edit+1] + (delta * 2)
+      local amp_value = util.linlin(0, 32, 0.0, 1.0, new_v)
+      params:set("vol" .. edit+1, amp_value)
+    elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
 			--set the cents value to increment by
 			params:set("cents" .. edit+1, params:get("cents" .. edit+1) + delta)
 
@@ -450,12 +449,12 @@ function enc(n, delta)
 		elseif key_1_pressed == 1  and key_2_pressed == 0 and key_3_pressed == 0 then
                   --set bit depth
                   params:set("bit_depth" .. edit+1, params:get("bit_depth" .. edit+1) + delta)
-		end
-	end
-	screen_dirty = true
-end
+                end
+              end
+              screen_dirty = true
+            end
 
-function key(n, z)
+            function key(n, z)
 	--use these keypress variables to add extra functionality on key hold
 	if n == 1 and z == 1 then
 		key_1_pressed = 1
