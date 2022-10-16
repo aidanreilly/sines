@@ -32,7 +32,8 @@ local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 local edit = 1
 local accum = 1
 -- env_name, env_bias, attack, decay. bias of 1.0 is used to create a static drone
-local envs = {{"drone", 1.0, 1.0, 1.0},
+local envs = {
+    {"drone", 1.0, 1.0, 1.0},
     {"am1", 0.0, 0.001, 0.01},
     {"am2", 0.0, 0.001, 0.02},
     {"am3", 0.3, 0.001, 0.05},
@@ -47,7 +48,8 @@ local envs = {{"drone", 1.0, 1.0, 1.0},
     {"evolve1", 0.3, 10.0, 10.0},
     {"evolve2", 0.3, 15.0, 11.0},
     {"evolve3", 0.3, 20.0, 12.0},
-{"evolve4", 0.4, 25.0, 15.0}}
+    {"evolve4", 0.4, 25.0, 15.0}
+}
 local env_values = {}
 local env_edit = 1
 local env_accum = 1
