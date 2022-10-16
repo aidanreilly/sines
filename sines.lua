@@ -265,7 +265,7 @@ function init()
     end
 
     function set_vol(synth_num, value)
-        engine.vol(synth_num, value)
+        engine.vol(synth_num, value * 0.2)
         edit = synth_num
 
         -- update displayed sine value
