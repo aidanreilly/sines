@@ -88,7 +88,7 @@ local conf_16n=nil
 _16n.init = function(cc_cb_fn)
   for _,dev in pairs(midi.devices) do
     if dev.name~=nil and dev.name == "16n" then
-      print("detected 16n, will lookup its confif via sysex")
+      print("detected 16n, will lookup its config via sysex")
 
       dev_16n = dev
       midi_16n = midi.connect(dev.port)
@@ -137,7 +137,7 @@ end
 
 local function mustHaveConf()
   if conf_16n == nil then
-    error("Attempted to access 16n configuration while the later didn't get retrieved.")
+    error("Attempted to access the 16n configuration but it didn't get retrieved.")
   end
 end
 
