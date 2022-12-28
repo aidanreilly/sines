@@ -1,4 +1,4 @@
---- ~ sines 0.9 ~
+--- ~ sines 0.91 ~
 -- @oootini, @eigen
 --
 --   ~~    ~~    ~~    ~~    ~~    ~~
@@ -193,6 +193,9 @@ function init()
         min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function() set_notes() end}
         params:add{type = "option", id = "16n_auto", name = "auto bind 16n", options = {"yes", "no"}, default = 1}
         params:add{type = "option", id = "16n_params_jump", name = "16n params jumps", options = {"yes", "no"}, default = 1}
+        --amp slew
+        params:add_control("amp_slew", "amp slew", controlspec.new(0.01, 10, 'lin', 0.01, 0.01))
+        params:set_action("amp_slew", function(x) set_amp_slew(x) end)
         --set virtual faders params
         params:add_group("virtual faders", 16)
         for i = 1, 16 do
@@ -239,6 +242,13 @@ function init()
         scale_toggle = true
         for i = 1, 16 do
             params:set("note" .. i, notes[i])
+        end
+    end
+
+    function set_amp_slew(slew_rate)
+        -- set the slew rate for every voice 
+        for i = 1, 16 do
+            engine.amp_slew(i, slew_rate)
         end
     end
 
