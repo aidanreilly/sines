@@ -194,7 +194,7 @@ function init()
         params:add{type = "option", id = "16n_auto", name = "auto bind 16n", options = {"yes", "no"}, default = 1}
         params:add{type = "option", id = "16n_params_jump", name = "16n params jumps", options = {"yes", "no"}, default = 1}
         --amp slew
-        params:add_control("amp_slew", "amp slew", controlspec.new(0.01, 10, 'lin', 0.01, 0.01))
+        params:add_control("amp_slew", "amp slew", controlspec.new(0.01, 10, 'lin', 0.01, 0.01, 's'))
         params:set_action("amp_slew", function(x) set_amp_slew(x) end)
         --set virtual faders params
         params:add_group("virtual faders", 16)
@@ -247,7 +247,7 @@ function init()
 
     function set_amp_slew(slew_rate)
         -- set the slew rate for every voice 
-        for i = 1, 16 do
+        for i = 0, 15 do
             engine.amp_slew(i, slew_rate)
         end
     end
