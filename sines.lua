@@ -1,5 +1,5 @@
---- ~ sines 0.91 ~
--- @oootini, @eigen
+--- ~ sines 0.92 ~
+-- @oootini, @eigen, @sixolet
 --
 --   ~~    ~~    ~~    ~~    ~~    ~~
 --  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
