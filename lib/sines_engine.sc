@@ -4,7 +4,7 @@
 
 Engine_Sines : CroneEngine {
   classvar num;
-  var <synth;
+  var <synth, <bus, <output_stage;
 
   *initClass {  num = 16; }
 
@@ -29,10 +29,13 @@ Engine_Sines : CroneEngine {
       car_decimate = Decimator.ar(car, sample_rate, bit_depth, 1.0, 0);
       Out.ar(out, Pan2.ar(car_decimate * amp_ * vol_, pan_));
     });
+    SynthDef.new(\sines_output, {|in, out|
+      Out.ar(out, In.ar(in, 2).tanh);
+    }).add;
     def.send(server);
+    bus = Bus.audio(server, 2);
     server.sync;
-
-    synth = Array.fill(num, { Synth.new(\sin, [\out, context.out_b], target: context.xg) });
+    synth = Array.fill(num, { Synth.new(\sin, [\out, bus], target: context.xg) });
     #[\hz, \vol, \env_bias, \pan, \amp_atk, \amp_rel, \amp_slew, \hz_lag, \pan_lag, \fm_index].do({
       arg name;
       this.addCommand(name, "if", {
@@ -41,6 +44,10 @@ Engine_Sines : CroneEngine {
         synth[i].set(name, msg[2]);
       });
     });
+
+    server.sync;
+    output_stage = Synth.new(\sines_output, [\out, context.out_b, \in, bus], addAction: \addToTail);
+    server.sync;
 
     #[\sample_rate, \bit_depth].do({
       arg name;
@@ -55,6 +62,8 @@ Engine_Sines : CroneEngine {
 
   free {
     synth.do({ |syn| syn.free; });
+    output_stage.free;
+    bus.free;
   }
 }
 
