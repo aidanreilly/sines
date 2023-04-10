@@ -399,6 +399,11 @@ m.event = function(data)
   -- if sliders[i] < 0 then sliders[i] = 0 end
   -- end
   -- end
+  local faderNum = d.cc + 1
+  if faderNum < 17 then
+    sliders[faderNum] = d.val
+    params:set("vol" .. faderNum, d.val)
+  end
   --allow root note to be set from midi keyboard - doesn't work with multiple midi devices?
   if d.type == "note_on" then
     params:set("root_note", d.note)
