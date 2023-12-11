@@ -29,9 +29,13 @@ Engine_Sines : CroneEngine {
       car_decimate = Decimator.ar(car, sample_rate, bit_depth, 1.0, 0);
       Out.ar(out, Pan2.ar(car_decimate * amp_ * vol_, pan_));
     });
+
     SynthDef.new(\sines_output, {|in, out|
-      Out.ar(out, In.ar(in, 2).tanh);
+        var sig = In.ar(in, 2);
+        sig = Limiter.ar(sig, 1.0, 0.01); // Apply Limiter.ar to prevent clipping
+        Out.ar(out, sig);
     }).add;
+
     def.send(server);
     bus = Bus.audio(server, 2);
     server.sync;
@@ -66,5 +70,3 @@ Engine_Sines : CroneEngine {
     bus.free;
   }
 }
-
-
