@@ -555,7 +555,7 @@ function redraw_grid()
   for x = 1, grid_width do
     local col_height = grid_height - math.ceil(sliders[x] / grid_slider_scale)
     for y = col_height, grid_height do
-      g:led(x,y,4)
+      g:led(x,y,x == (edit + 1) and 8 or 4)
     end
   end
   g:refresh()
