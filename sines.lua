@@ -1,5 +1,5 @@
 --- ~ sines 0.92 ~
--- @oootini, @eigen, @sixolet
+-- @oootini, @eigen, @sixolet, @x2mirko
 --
 --   ~~    ~~    ~~    ~~    ~~    ~~
 --  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
@@ -29,6 +29,7 @@
 -- n + K1 + K2 + K3 - note
 
 local sliders = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+local max_slider_size = 32
 local edit = 1
 local accum = 1
 -- env_name, env_bias, attack, decay. bias of 1.0 is used to create a static drone
@@ -80,6 +81,19 @@ engine.name = "Sines"
 MusicUtil = require "musicutil"
 _16n = include "sines/lib/16n"
 
+local g = grid.connect()
+local grid_width = g.cols
+local grid_height = g.rows
+local grid_slider_scale = max_slider_size / grid_height
+local monobright = false
+
+-- handle monobright grids
+if util.string_starts(g.name, 'monome 64 m64')
+  or util.string_starts(g.name, 'monome 128 m128')
+  or util.string_starts(g.name, 'monome 256 m256') then
+    monobright = true
+end
+
 function init()
   print("loaded Sines engine")
   add_params()
@@ -87,7 +101,7 @@ function init()
   for i = 1, 16 do
     env_values[i] = params:get("env" .. i)
     cents[i] = params:get("cents" .. i)
-    sliders[i] = (params:get("vol" .. i)) * 32
+    sliders[i] = (params:get("vol" .. i)) * max_slider_size
   end
 
   _16n.init(_16n_slider_callback)
@@ -280,7 +294,7 @@ function set_vol(synth_num, value)
 
   -- update displayed sine value
   local s_id = (synth_num + 1)
-  sliders[s_id] = math.floor(util.linlin(0.0, 1.0, 0, 32, value))
+  sliders[s_id] = math.floor(util.linlin(0.0, 1.0, 0, max_slider_size, value))
 
   screen_dirty = true
 end
@@ -442,7 +456,7 @@ function enc(n, delta)
     if key_1_pressed == 0 and key_3_pressed == 0 and key_2_pressed == 0 then
       --set the slider value
       local new_v = sliders[edit + 1] + (delta * 2)
-      local amp_value = util.linlin(0, 32, 0.0, 1.0, new_v)
+      local amp_value = util.linlin(0, max_slider_size, 0.0, 1.0, new_v)
       params:set("vol" .. edit + 1, amp_value)
     elseif key_1_pressed == 0 and key_2_pressed == 1 and key_3_pressed == 0 then
       --set the cents value to increment by
@@ -480,6 +494,11 @@ function key(n, z)
 end
 
 function redraw()
+  redraw_screen()
+  redraw_grid()
+end
+
+function redraw_screen()
   screen.aa(1)
   screen.line_width(2.0)
   screen.clear()
@@ -537,4 +556,28 @@ function redraw()
   screen.level(15)
   screen.text(math.floor((params:get('output_level')) * 10 / 10) .. " dB")
   screen.update()
+end
+
+function redraw_grid()
+  g:all(0)
+  for x = 1, grid_width do
+    local col_height = grid_height - math.ceil(sliders[x] / grid_slider_scale)
+    for y = col_height, grid_height do
+      if monobright then
+        g:led(x,y,15)
+      else
+        g:led(x,y,x == (edit + 1) and 8 or 4)
+      end
+    end
+  end
+  g:refresh()
+end
+
+g.key = function(x,y,z)
+  if z == 1 then
+    local amp_value = util.linlin(0, grid_height, 0.0, 1.0, grid_height - y)
+    params:set("vol" .. x, amp_value)
+    edit = x - 1
+  end
+  screen_dirty = true
 end
