@@ -1,5 +1,5 @@
 --- ~ sines 0.92 ~
--- @oootini, @eigen, @sixolet
+-- @oootini, @eigen, @sixolet, @x2mirko
 --
 --   ~~    ~~    ~~    ~~    ~~    ~~
 --  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~
@@ -85,6 +85,14 @@ local g = grid.connect()
 local grid_width = g.cols
 local grid_height = g.rows
 local grid_slider_scale = max_slider_size / grid_height
+local monobright = false
+
+-- handle monobright grids
+if util.string_starts(g.name, 'monome 64 m64')
+  or util.string_starts(g.name, 'monome 128 m128')
+  or util.string_starts(g.name, 'monome 256 m256') then
+    monobright = true
+end
 
 function init()
   print("loaded Sines engine")
@@ -555,7 +563,11 @@ function redraw_grid()
   for x = 1, grid_width do
     local col_height = grid_height - math.ceil(sliders[x] / grid_slider_scale)
     for y = col_height, grid_height do
-      g:led(x,y,x == (edit + 1) and 8 or 4)
+      if monobright then
+        g:led(x,y,15)
+      else
+        g:led(x,y,x == (edit + 1) and 8 or 4)
+      end
     end
   end
   g:refresh()
