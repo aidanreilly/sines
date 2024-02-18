@@ -15,12 +15,14 @@
 --
 -- 16n control
 -- n - sine volume
-
--- crow
--- E1 - select crow config
-
+--
 -- z_tuning
 -- configure in parameters > edit > Z_TUNING
+
+engine.name = "Sines"
+_mods = require 'core/mods'
+_16n = include "sines/lib/16n"
+MusicUtil = require "musicutil"
 
 local max_slider_size = 32
 local sliders = {}
@@ -28,6 +30,8 @@ local fader_follow_vals = {}
 local prev_vols = {}
 local fader_abs_vals = {}
 local follow_clocks = {}
+-- crow_out_pairs maps a pair of 16n synth outputs to crow outs 1&2, 3&4 as 1v/oct + ad env pairs
+local crow_out_pairs = {}
 
 for i = 1, 16 do
   fader_follow_vals[i] = 0
@@ -35,6 +39,7 @@ for i = 1, 16 do
   prev_vols[i] = 0
   sliders[i] = 0
   follow_clocks[i] = i
+  crow_out_pairs[i] = i
 end
 
 local edit = 1
@@ -96,8 +101,6 @@ local crow_outs = {
   {1, 4, 7, 11},
   {1, 5, 9, 12}
 }
--- crow_out_pairs maps a pair of 16n synth outputs to crow outs 1&2, 3&4 as 1v/oct + attack-decay env pairs
-local crow_out_pairs = {}
 
 local sample_bitrates = {
   {"hifi", 48000, 24},
@@ -128,11 +131,6 @@ if util.string_starts(g.name, 'monome 64 m64')
     monobright = true
 end
 
-engine.name = "Sines"
-_mods = require 'core/mods'
-_16n = include "sines/lib/16n"
-MusicUtil = require "musicutil"
-
 function init()
   print("loaded Sines engine ~")
   add_params()
@@ -145,11 +143,6 @@ function init()
     end
         sliders[i] = (params:get("vol" .. i)) * max_slider_size
     prev_vols[i] = params:get("vol" .. i)
-  end
-  -- create crow_out_pairs array of eg., {"1n + 2n", 1, 2}, {"1n + 3n", 1, 3}, etc
-  for i = 1, 15 do
-    pair = "1n + " .. i + 1 .. "n"
-    crow_out_pairs[i] = {pair, 1, i + 1}
   end
 
   _16n.init(_16n_slider_callback)
@@ -168,6 +161,8 @@ function init()
             redraw()
             screen_dirty = false
           end
+          -- bang the env delay rand value
+          engine.env_delay_rand(i - 1, math.random() * params:get("env_delay_rand" .. i))
           fader_abs_vals[i] = params:get("fader" .. i)
           fader_follow_vals[i] = follow_countdown(i, fader_abs_vals[i])
           if params:get("play_mode") == 1 then
@@ -264,20 +259,6 @@ function add_params()
   params:add{type = "number", id = "root_note", name = "root note",
   min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function() set_notes() end}
 
-  -- crow params
-  params:add_group("crow", 3)
-  params:add{type = "number", id = "crow_config", name = "crow config", min = 1, max = 2, default = 2, formatter = function(param) return crow_config_formatter(param:get()) end, action = function() set_crow() end}
-
-  -- crow out quad v/o
-  params:add{type = "number", id = "crow_out_vo", name = "crow v/o", min = 1, max = 12, default = 5, formatter = function(param) return crow_out_formatter(param:get()) end}
-
-  -- crow out pairs
-  params:add{type = "number", id = "crow_out_pairs", name = "crow v/o + env", min = 1, max = 15, default = 4, formatter = function(param) return crow_out_pairs_formatter(param:get()) end, action = function() set_crow() end}
-
-  -- 16n control
-  params:add{type = "option", id = "16n_auto", name = "auto bind 16n", options = {"yes", "no"}, default = 1}
-  params:add{type = "option", id = "16n_params_jump", name = "16n param jumps", options = {"yes", "no"}, default = 2}
-
   -- amp slew
   params:add_control("amp_slew", "amp slew", controlspec.new(0.01, 10, 'lin', 0.01, 0.01, 's'))
   params:set_action("amp_slew", function(x) set_amp_slew(x) end)
@@ -285,23 +266,57 @@ function add_params()
   -- global pan settings
   params:add{type = "number", id = "global_pan", name = "global panning", min = 0, max = 1, default = 0, formatter = function(param) return global_pan_formatter(param:get()) end, action = function(x) set_global_pan(x) end}
 
+  params:add_group("faders config", 2)
   -- reset style
   params:add{type = "option", id = "reset_style", name = "fader reset style", options = {"return", "zeroed"}, default = 2}
 
   -- play mode
   params:add{type = "number", id = "play_mode", name = "fader play mode", min = 0, max = 1, default = 0, formatter = function(param) return play_mode_formatter(param:get()) end, action = function(x) set_play_mode(x) end}
 
-  -- set voice params
-  for i = 1, 16 do
-    params:add_group(i .. "n voice", 13)
+  -- crow config params
+  params:add_group("crow config", 3)
+  params:add{type = "number", id = "crow_config", name = "crow config", min = 1, max = 2, default = 2, formatter = function(param) return crow_config_formatter(param:get()) end, action = function() set_crow() end}
 
+  -- crow out quad v/o
+  params:add{type = "number", id = "crow_out_vo", name = "crow v/o", min = 1, max = 12, default = 5, formatter = function(param) return crow_out_formatter(param:get()) end}
+
+  -- crow out pairs
+  params:add{type = "number", id = "crow_out_pairs", name = "crow v/o + env", min = 1, max = 16, default = 4, formatter = function(param) return crow_out_pairs_formatter(param:get()) end, action = function() set_crow() end}
+
+  params:add_group("crow env delay", 17)
+  -- default crow env delay position
+  params:add{type = "option", id = "crow_env_delay_pos_default", name = "default crow env delay", options = {"before", "after"}, default = 2}
+  params:set_action("crow_env_delay_pos_default", function(x) set_crow_env_delay_pos_default(x) end)
+  for i = 1, 16 do
+    -- crow env delay position
+    params:add{type = "option", id = "crow_env_delay_pos" .. i, name = i .. "n crow env delay", options = {"before", "after"}, default = 2}
+    params:set_action("crow_env_delay_pos" .. i, function() set_crow_env_delay_pos() end)
+  end
+
+  -- env delay
+  params:add_group("env delay", 17)
+  params:add_control("env_delay_rand_global", "global env delay rand mult", controlspec.new(0.0, 1.0, 'lin', 0.1, 0.0))
+  params:set_action("env_delay_rand_global", function(x) set_env_delay_rand_global(x) end)
+  for i = 1,16 do
+    params:add_control("env_delay_rand" .. i, i .. "n env delay rand mult", controlspec.new(0.0, 1.0, 'lin', 0.1, 0.0))
+    params:set_action("env_delay_rand" .. i, function(x) set_env_delay_rand(i - 1, x) end)
+  end
+
+  -- 16n control
+  params:add_group("16n config", 2)
+  params:add{type = "option", id = "16n_auto", name = "auto bind 16n", options = {"yes", "no"}, default = 1}
+  params:add{type = "option", id = "16n_params_jump", name = "16n param jumps", options = {"yes", "no"}, default = 2}
+
+  for i = 1, 16 do
+    -- set voice params
+    params:add_group(i .. "n voice", 13)
     -- set voice vols
     params:add_control("vol" .. i,  i .. "n vol", controlspec.new(0.0, 1.0, 'lin', 0.01, 0.0))
     params:set_action("vol" .. i, function(x) set_vol(i - 1, x) end)
 
     params:add{type = "number", id = "pan" ..i, name = i .. "n pan", min = -1, max = 1, default = 0, formatter = function(param) return pan_formatter(param:get()) end, action = function(x) set_synth_pan(i - 1, x) end}
 
-    params:add{type = "number", id = "note" ..i, name = i .. "n note", min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
+    params:add{type = "number", id = "note" .. i, name = i .. "n note", min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function(x) set_note(i - 1, x) end}
 
     if not z_tuning then
       params:add_control("cents" .. i, i .. "n cents detune", controlspec.new(-200, 200, 'lin', 1, 0, 'cents'))
@@ -322,7 +337,7 @@ function add_params()
     params:add_control("env_bias" .. i, i .. "n bias", controlspec.new(0.0, 1.0, 'lin', 0.1, 1.0))
     params:set_action("env_bias" .. i, function(x) set_env_bias(i - 1, x) end)
 
-    params:add{type = "number", id = "eoc_delay" .. i, name = i .. "n env delay", min = 0, max = 2000, default = 0, formatter = function(param) return eoc_delay_formatter(param:get()) end, action = function(x) set_amp_eoc_delay(i - 1, x) end}
+    params:add{type = "number", id = "env_delay" .. i, name = i .. "n env delay", min = 0, max = 2000, default = 0, formatter = function(param) return env_delay_formatter(param:get()) end, action = function(x) set_amp_env_delay(i - 1, x) end}
 
     params:add{type = "number", id = "sample_bitrate" .. i, name = i .. "n smpl bitrate", min = 1, max = 13, default = 1, formatter = function(param) return sample_bitrate_formatter(param:get()) end, action = function(x) set_sample_bitrate(i, x) end}
 
@@ -398,15 +413,33 @@ function set_crow_note_env_pairs()
     crow.output[1].volts = params:get("note1")/12
     crow.output[3].volts = params:get("note" .. i)/12
   end
-  -- crow out 2 env is always attached to 1n output
-  local crow_out_2_env_atk = params:get("attack1")
-  local crow_out_2_env_dec = params:get("decay1")
-  crow.output[2].action = "loop( { ar("..crow_out_2_env_atk..", "..crow_out_2_env_dec..", 7, 'log') } )"
+  -- 3 stage looping env with assigned "delay" in front or behind
+  --crow out 2 env
+  if params:string("crow_env_delay_pos1") == "before" then
+    -- _/\
+    crow.output[2].action = "loop{ to(0, dyn{crow_env_delay2 = 0.0}), to(7, dyn{crow_attack2 = 0.01}), to(0, dyn{crow_decay2 = 0.1}) }"
+
+  elseif params:string("crow_env_delay_pos1") == "after" then
+    -- /\_
+    crow.output[2].action = "loop{ to(7, dyn{crow_attack2 = 0.01}), to(0, dyn{crow_decay2 = 0.1}), to(0, dyn{crow_env_delay2 = 0}) }"
+  end
+  crow.output[2].dyn.crow_env_delay2 = params:get("env_delay1")/100 + math.random() * params:get("env_delay_rand1")
+  crow.output[2].dyn.crow_attack2 = params:get("attack1")
+  crow.output[2].dyn.crow_decay2 = params:get("decay1")
   crow.output[2]()
+
   -- crow out 4 env
-  local crow_out_4_env_atk = params:get("attack" .. i + 1)
-  local crow_out_4_env_dec = params:get("decay"  .. i + 1)
-  crow.output[4].action = "loop( { ar("..crow_out_4_env_atk..", "..crow_out_4_env_dec..", 7, 'log') } )"
+  if params:string("crow_env_delay_pos" .. i) == "before" then
+    -- _/\
+    crow.output[4].action = "loop{ to(0, dyn{crow_env_delay4 = 0.0}), to(7, dyn{crow_attack4 = 0.01}), to(0, dyn{crow_decay4 = 0.1}) }"
+
+  elseif params:string("crow_env_delay_pos" .. i) == "after" then
+    -- /\_
+    crow.output[4].action = "loop{ to(7, dyn{crow_attack4 = 0.01}), to(0, dyn{crow_decay4 = 0.1}), to(0, dyn{crow_env_delay4 = 0}) }"
+  end
+  crow.output[4].dyn.crow_env_delay4 = params:get("env_delay" .. i)/100 + math.random() * params:get("env_delay_rand" .. i)
+  crow.output[4].dyn.crow_attack4 = params:get("attack" .. i)
+  crow.output[4].dyn.crow_decay4 = params:get("decay" .. i)
   crow.output[4]()
 end
 
@@ -444,6 +477,31 @@ function set_play_mode(x)
       sliders[i] = 0
     end
     params:set("amp_slew", 0.6)
+  end
+end
+
+function set_env_delay_rand_global(value)
+  for i = 1,16 do
+    params:set("env_delay_rand" .. i, value)
+  end
+end
+
+function set_env_delay_rand(synth_num, value)
+  engine.env_delay_rand(synth_num, value)
+  if norns.crow.connected() then
+    set_crow()
+  end
+end
+
+function set_crow_env_delay_pos_default(x)
+  for i = 1,16 do
+    params:set("crow_env_delay_pos" .. i, x)
+  end
+end
+
+function set_crow_env_delay_pos()
+  if norns.crow.connected() then
+    set_crow()
   end
 end
 
@@ -538,14 +596,15 @@ function crow_config_formatter(num)
 end
 
 function crow_out_pairs_formatter(num)
-  -- return the pair as a string
-  local crow_output_pairs = crow_out_pairs[num][1]
-  return (crow_output_pairs)
+  -- create crow_out_pairs array of eg., {"1n + 2n", 1, 2}, {"1n + 3n", 1, 3}, etc
+  local pair = "1n + " .. num .. "n"
+  crow_out_pairs[num] = {pair, 1, num}
+  return (crow_out_pairs[num][1])
 end
 
-function eoc_delay_formatter(value)
-  local eoc_delay_ms = value/100
-  return (eoc_delay_ms)
+function env_delay_formatter(value)
+  local env_delay_ms = value/100
+  return (env_delay_ms)
 end
 
 function sample_bitrate_formatter(value)
@@ -577,8 +636,8 @@ function set_amp_rel(synth_num, value)
   screen_dirty = true
 end
 
-function set_amp_eoc_delay(synth_num, value)
-  engine.eoc_delay(synth_num, value/100)
+function set_amp_env_delay(synth_num, value)
+  engine.env_delay(synth_num, value/100)
   edit = synth_num
   screen_dirty = true
 end
@@ -707,6 +766,9 @@ function enc(n, delta)
       elseif params_select == 1 then
         -- envl
         params:set("env" .. edit + 1, params:get("env" .. edit + 1) + delta)
+        if norns.crow.connected() then
+          set_crow()
+        end
       elseif params_select == 2 then
         -- smpl
         params:set("sample_bitrate" .. edit + 1, params:get("sample_bitrate" .. edit + 1) + (delta))
@@ -730,7 +792,10 @@ function enc(n, delta)
         end
       elseif params_select == 1 then
         -- env delay
-        params:set("eoc_delay" .. edit + 1, params:get("eoc_delay" .. edit + 1) + delta)
+        params:set("env_delay" .. edit + 1, params:get("env_delay" .. edit + 1) + delta)
+        if norns.crow.connected() then
+          set_crow()
+        end
       elseif params_select == 2 then
         -- fm index
         params:set("fm_index" .. edit + 1, params:get("fm_index" .. edit + 1) + delta)
@@ -837,7 +902,7 @@ function redraw_screen()
   screen.text("envd:")
   screen.level(current_state[3])
   screen.move(89, 12)
-  screen.text(eoc_delay_formatter(params:get("eoc_delay" .. edit + 1)) .. " s")
+  screen.text(env_delay_formatter(params:get("env_delay" .. edit + 1)) .. " s")
   screen.move(0, 19)
   screen.level(2)
   screen.text("smpl:")
@@ -865,7 +930,7 @@ function redraw_screen()
     if params:get("crow_config") == 1 then
       screen.text(crow_out_formatter(params:get("crow_out_vo")))
     elseif params:get("crow_config") == 2 then
-      screen.text(crow_out_pairs_formatter(params:get("crow_out_pairs")))
+      screen.text("1n + " .. params:get("crow_out_pairs") .. "n")
     end
   else
     screen.text("none")

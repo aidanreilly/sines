@@ -36,8 +36,9 @@
 "global_pan": 0
 "reset_style": 2
 "play_mode": 0
+"eoc_delay_rand": 0.1
 "1n voice": 13
-"vol1": 0.74
+"vol1": 0.85
 "pan1": 0
 "note1": 52
 "cents1": 0
@@ -51,7 +52,7 @@
 "bit_depth1": 24
 "smpl_rate1": 48000
 "2n voice": 13
-"vol2": 0.37
+"vol2": 0.41
 "pan2": 0
 "note2": 53
 "cents2": 0
@@ -65,7 +66,7 @@
 "bit_depth2": 10
 "smpl_rate2": 28900
 "3n voice": 13
-"vol3": 0.17
+"vol3": 0.26
 "pan3": 0
 "note3": 55
 "cents3": 0
@@ -93,7 +94,7 @@
 "bit_depth4": 10
 "smpl_rate4": 28900
 "5n voice": 13
-"vol5": 0.0
+"vol5": 0.05
 "pan5": 0
 "note5": 59
 "cents5": 0
@@ -121,7 +122,7 @@
 "bit_depth6": 24
 "smpl_rate6": 48000
 "7n voice": 13
-"vol7": 0.08
+"vol7": 0.12
 "pan7": 0
 "note7": 62
 "cents7": 0
@@ -135,7 +136,7 @@
 "bit_depth7": 10
 "smpl_rate7": 32000
 "8n voice": 13
-"vol8": 0.0
+"vol8": 0.06
 "pan8": 0
 "note8": 64
 "cents8": 0
@@ -261,19 +262,25 @@
 "bit_depth16": 24
 "smpl_rate16": 48000
 "virtual faders": 16
-"fader1": 0
-"fader2": 0
-"fader3": 0
-"fader4": 127
-"fader5": 127
-"fader6": 127
-"fader7": 127
-"fader8": 121
-"fader9": 63
-"fader10": 102
-"fader11": 122
-"fader12": 74
-"fader13": 65
-"fader14": 58
+"fader1": 108
+"fader2": 52
+"fader3": 33
+"fader4": 24
+"fader5": 6
+"fader6": 0
+"fader7": 15
+"fader8": 7
+"fader9": 0
+"fader10": 0
+"fader11": 0
+"fader12": 0
+"fader13": 0
+"fader14": 0
 "fader15": 0
 "fader16": 0
+"Z_TUNING": 5
+"zt_tuning": 1
+"zt_root_note": 69
+"zt_root_note_adj": 69
+"zt_root_note_piv": 69
+"zt_root_freq": 440.0
