@@ -577,6 +577,7 @@ g.key = function(x,y,z)
   if z == 1 then
     local amp_value = util.linlin(0, grid_height, 0.0, 1.0, grid_height - y)
     params:set("vol" .. x, amp_value)
+    edit = x - 1
   end
   screen_dirty = true
 end
