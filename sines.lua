@@ -171,7 +171,7 @@ function init()
           fader_follow_vals[i] = follow_countdown(i, fader_abs_vals[i])
           if params:get("play_mode") == 1 then
             if math.abs(fader_follow_vals[i] - fader_abs_vals[i]) > 10 then
-              engine.vol(i - 1 , util.linexp(0, 127, 0.0, 1.0, fader_follow_vals[i])) 
+              engine.vol(i - 1 , util.linexp(0, 127, 0.0, 1.0, fader_follow_vals[i]))
             end
             if fader_follow_vals[i] == 0 then
               --reset slider to 0
@@ -264,7 +264,7 @@ function add_params()
   min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function() set_notes() end}
 
   -- amp slew
-  params:add_control("amp_slew", "amp slew", controlspec.new(0.01, 10, 'lin', 0.01, 0.01, 's'))
+  params:add_control("amp_slew", "amp slew", controlspec.new(0.01, 10, 'lin', 0.01, 0.7, 's'))
   params:set_action("amp_slew", function(x) set_amp_slew(x) end)
 
   -- global pan settings
@@ -472,7 +472,6 @@ function set_play_mode(x)
       params:set("env" .. i, params:get("env" .. i))
       screen_dirty = true
     end
-    params:set("amp_slew", 0.1)
   elseif x == 1 then
     -- env follower
     for i = 1,16 do
@@ -486,7 +485,6 @@ function set_play_mode(x)
     end
     -- slight bump becuase this mode is a bit quieter
     params:set('output_level', 3)
-    params:set("amp_slew", 0.6)
   end
 end
 
