@@ -11,13 +11,13 @@
 -- E2 - select sine
 -- E3 - selected sine volume
 -- K2 - toggle sines/ctrl
--- K3 - reset + toggle env/follow
+-- K3 - toggle env/follow
 --
 -- 16n control
 -- n - sine volume
 --
 -- z_tuning
--- configure in parameters > edit > Z_TUNING
+-- params > edit > Z_TUNING
 
 engine.name = "Sines"
 _mods = require 'core/mods'
@@ -25,9 +25,11 @@ _16n = include "sines/lib/16n"
 MusicUtil = require "musicutil"
 
 local max_slider_size = 32
+local prev_output_level = 0
 local sliders = {}
 local fader_follow_vals = {}
 local prev_vols = {}
+local prev_envs = {}
 local fader_abs_vals = {}
 local follow_clocks = {}
 -- crow_out_pairs maps a pair of 16n synth outputs to crow outs 1&2, 3&4 as 1v/oct + ad env pairs
@@ -37,6 +39,7 @@ for i = 1, 16 do
   fader_follow_vals[i] = 0
   fader_abs_vals[i] = 0
   prev_vols[i] = 0
+  prev_envs[i] = 0
   sliders[i] = 0
   follow_clocks[i] = i
   crow_out_pairs[i] = i
@@ -141,8 +144,9 @@ function init()
     if not z_tuning then
       cents[i] = params:get("cents" .. i)
     end
-        sliders[i] = (params:get("vol" .. i)) * max_slider_size
+    sliders[i] = (params:get("vol" .. i)) * max_slider_size
     prev_vols[i] = params:get("vol" .. i)
+    prev_envs[i] = params:get("env" .. i)
   end
 
   _16n.init(_16n_slider_callback)
@@ -167,7 +171,7 @@ function init()
           fader_follow_vals[i] = follow_countdown(i, fader_abs_vals[i])
           if params:get("play_mode") == 1 then
             if math.abs(fader_follow_vals[i] - fader_abs_vals[i]) > 10 then
-              engine.vol(i - 1 , util.linexp(0, 127, 0.0, 1.0, fader_follow_vals[i]) * 0.2)
+              engine.vol(i - 1 , util.linexp(0, 127, 0.0, 1.0, fader_follow_vals[i])) 
             end
             if fader_follow_vals[i] == 0 then
               --reset slider to 0
@@ -454,12 +458,15 @@ end
 function set_play_mode(x)
   if x == 0 then
     -- faders
+    params:set('output_level', prev_output_level)
     for i = 1,16 do
       if params:string("reset_style") == "return" then
         params:set("vol" .. i, prev_vols[i])
+        params:set("env" .. i, prev_envs[i])
         sliders[i] = math.floor(util.linlin(0.0, 1.0, 0, 32, prev_vols[i]))
       elseif params:string("reset_style") == "zeroed" then
         params:set("vol" .. i, 0)
+        params:set("env" .. i, prev_envs[i])
       end
       -- put back the env
       params:set("env" .. i, params:get("env" .. i))
@@ -471,11 +478,14 @@ function set_play_mode(x)
     for i = 1,16 do
       -- this is very goofy
       prev_vols[i] = params:get("vol" .. i)
+      prev_envs[i] = params:get("env" .. i)
       params:set("vol" .. i, 0)
-      -- hijack the env and sliders values
-      set_env(i, 1)
+      params:set("env" .. i, 1)
       sliders[i] = 0
+      prev_output_level = params:get('output_level')
     end
+    -- slight bump becuase this mode is a bit quieter
+    params:set('output_level', 3)
     params:set("amp_slew", 0.6)
   end
 end
