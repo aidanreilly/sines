@@ -90,7 +90,7 @@ local prev_16n_slider_v = {
 local fps = 14
 local screen_dirty = false
 
-local crow_option = {"quad v/o", "v/o + env"}
+local crow_option = {"quad v/o", "v/o + env", "v/o + trig"}
 -- crow_outs maps individual sine synth outputs to crow outs 1-4 as hz > 1v/oct
 local crow_outs = {
   {1, 3, 5, 7},
@@ -290,13 +290,13 @@ function add_params()
   params:add{type = "number", id = "play_mode", name = "fader play mode", min = 0, max = 1, default = 0, formatter = function(param) return play_mode_formatter(param:get()) end, action = function(x) set_play_mode(x) end}
 
   -- crow config params
-  params:add{type = "number", id = "crow_config", name = "crow config", min = 1, max = 2, default = 2, formatter = function(param) return crow_config_formatter(param:get()) end, action = function(x) set_crow(x) end}
+  params:add{type = "number", id = "crow_config", name = "crow config", min = 1, max = 3, default = 2, formatter = function(param) return crow_config_formatter(param:get()) end, action = function(x) set_crow(x) end}
 
   -- crow out quad v/o
-  params:add{type = "number", id = "crow_out_vo", name = "crow v/o", min = 1, max = 12, default = 5, formatter = function(param) return crow_out_formatter(param:get()) end}
+  params:add{type = "number", id = "crow_out_vo", name = "crow v/o", min = 1, max = 12, default = 5, formatter = function(param) return crow_out_formatter(param:get()) end, action = function(x) set_crow_notes(x) end}
 
   -- crow out pairs
-  params:add{type = "number", id = "crow_out_pairs", name = "crow v/o + env", min = 1, max = 16, default = 4, formatter = function(param) return crow_out_pairs_formatter(param:get()) end, action = function(x) set_crow_note_env_pairs(x) end}
+  params:add{type = "number", id = "crow_out_pairs", name = "crow v/o + out", min = 1, max = 16, default = 4, formatter = function(param) return crow_out_pairs_formatter(param:get()) end, action = function(x) set_crow_note_out_pairs(x) end}
 
   -- env delay
   params:add_group("env delay", 17)
@@ -365,7 +365,7 @@ function add_params()
 
   if norns.crow.connected() then
     set_crow(params:get("crow_config"))
-    if params:get("crow_config") == 2 then
+    if params:get("crow_config") == 2 or params:get("crow_config") == 3 then
       crow.output[2]()
       crow.output[4]()
     end
@@ -402,10 +402,10 @@ function hz_to_1voct(hz, root_freq)
   return v_oct
 end
 
-function set_crow_notes()
+function set_crow_notes(x)
   -- quad vo
   for i = 1, 4 do
-    local crow_voice = crow_outs[params:get("crow_out_vo")][i]
+    local crow_voice = crow_outs[x][i]
     if z_tuning then
       local hz = MusicUtil.note_num_to_freq(params:get("note" .. crow_voice))
       crow.output[i].volts = hz_to_1voct(hz, params:get("zt_root_freq"))
@@ -415,7 +415,7 @@ function set_crow_notes()
   end
 end
 
-function set_crow_note_env_pairs(i)
+function set_crow_note_out_pairs(i)
   if z_tuning then
     -- 1n v/o output
     crow.output[1].volts = hz_to_1voct(MusicUtil.note_num_to_freq(params:get("note" .. 1)), params:get("zt_root_freq"))
@@ -425,23 +425,34 @@ function set_crow_note_env_pairs(i)
     crow.output[1].volts = params:get("note1")/12
     crow.output[3].volts = params:get("note" .. i)/12
   end
-  -- crow out 2 env
-  crow.output[2].action = "loop{ to(0, dyn{crow_env_delay2 = 0.0}), to(7, dyn{crow_attack2 = 0.01}), to(0, dyn{crow_decay2 = 0.1}) }"
-  crow.output[2].dyn.crow_env_delay2 = params:get("env_delay1")/100 + math.random() * params:get("env_delay_rand1")
-  crow.output[2].dyn.crow_attack2 = params:get("attack1")
-  crow.output[2].dyn.crow_decay2 = params:get("decay1")
-  -- crow out 4 env
-  crow.output[4].action = "loop{ to(0, dyn{crow_env_delay4 = 0.0}), to(7, dyn{crow_attack4 = 0.01}), to(0, dyn{crow_decay4 = 0.1}) }"
-  crow.output[4].dyn.crow_env_delay4 = params:get("env_delay" .. i)/100 + math.random() * params:get("env_delay_rand" .. i)
-  crow.output[4].dyn.crow_attack4 = params:get("attack" .. i)
-  crow.output[4].dyn.crow_decay4 = params:get("decay" .. i)
+  -- set crow out 2 & 4 action
+  if params:get("crow_config") == 2 then
+    -- env action
+    crow.output[2].action = "loop{ to(0, dyn{crow_out_delay2 = 0.0}), to(7, dyn{crow_attack2 = 0.01}), to(0, dyn{crow_decay2 = 0.1}) }"
+    crow.output[4].action = "loop{ to(0, dyn{crow_out_delay4 = 0.0}), to(7, dyn{crow_attack4 = 0.01}), to(0, dyn{crow_decay4 = 0.1}) }"
+    -- set env delay
+    crow.output[2].dyn.crow_out_delay2 = params:get("env_delay1")/100 + math.random() * params:get("env_delay_rand1")
+    crow.output[4].dyn.crow_out_delay4 = params:get("env_delay" .. i)/100 + math.random() * params:get("env_delay_rand" .. i)
+    -- set env attack/decay
+    crow.output[2].dyn.crow_attack2 = params:get("attack1")
+    crow.output[2].dyn.crow_decay2 = params:get("decay1")
+    crow.output[4].dyn.crow_attack4 = params:get("attack" .. i)
+    crow.output[4].dyn.crow_decay4 = params:get("decay" .. i)
+  elseif params:get("crow_config") == 3 then
+    -- trigs
+    crow.output[2].action = "loop{ to(0, dyn{crow_out_delay2 = 0.0}), to(5, 0.001, 'now'), to(0, 0.001, 'now') }"
+    crow.output[4].action = "loop{ to(0, dyn{crow_out_delay4 = 0.0}), to(5, 0.001, 'now'), to(0, 0.001, 'now') }"
+    -- sum env values for total trig delay
+    crow.output[2].dyn.crow_out_delay2 = params:get("attack1") + params:get("decay1") + params:get("env_delay1")/100 + math.random() * params:get("env_delay_rand1")
+    crow.output[4].dyn.crow_out_delay4 = params:get("attack" .. i) + params:get("decay" .. i) + params:get("env_delay" .. i)/100 + math.random() * params:get("env_delay_rand" .. i)
+  end
 end
 
 function set_crow(x)
   if x == 1 then
-    set_crow_notes()
-  elseif x == 2 then
-    set_crow_note_env_pairs(params:get("crow_out_pairs"))
+    set_crow_notes(params:get("crow_out_vo"))
+  elseif x == 2 or x ==3 then
+    set_crow_note_out_pairs(params:get("crow_out_pairs"))
   end
 end
 
@@ -575,9 +586,7 @@ function set_env(synth_num, value)
   params:set("attack" .. synth_num, envs[value][3])
   params:set("decay" .. synth_num, envs[value][4])
   if norns.crow.connected() then
-    if params:get("crow_config") == 2 then
-      set_crow(2)
-    end
+    set_crow(params:get("crow_config"))
   end
 end
 
@@ -807,6 +816,10 @@ function enc(n, delta)
           params:set("crow_out_vo", params:get("crow_out_vo") + delta)
         elseif params:get("crow_config") == 2 then
           params:set("crow_out_pairs", params:get("crow_out_pairs") + delta)
+          screen.text("1n + " .. params:get("crow_out_pairs") .. "n")
+        elseif params:get("crow_config") == 3 then
+          params:set("crow_out_pairs", params:get("crow_out_pairs") + delta)
+          screen.text("1n + " .. params:get("crow_out_pairs") .. "n ^")
         end
       end
     elseif not control_toggle then
@@ -933,6 +946,8 @@ function redraw_screen()
       screen.text(crow_out_formatter(params:get("crow_out_vo")))
     elseif params:get("crow_config") == 2 then
       screen.text("1n + " .. params:get("crow_out_pairs") .. "n")
+    elseif params:get("crow_config") == 3 then
+      screen.text("1n + " .. params:get("crow_out_pairs") .. "n ^")
     end
   else
     screen.text("none")
