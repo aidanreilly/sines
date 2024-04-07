@@ -274,7 +274,7 @@ function add_params()
   min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end, action = function() set_notes() end}
 
   -- amp slew
-  params:add_control("amp_slew", "amp slew", controlspec.new(0.01, 10, 'lin', 0.01, 0.7, 's'))
+  params:add_control("amp_slew", "amp slew", controlspec.new(0.01, 10, 'lin', 0.01, 1.5, 's'))
   params:set_action("amp_slew", function(x) set_amp_slew(x) end)
 
   -- 16n control
