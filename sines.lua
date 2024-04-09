@@ -26,7 +26,7 @@ MusicUtil = require "musicutil"
 
 local max_slider_size = 32
 local prev_output_level = 0
-local prev_amp_slew = 0
+local prev_slew_level = 0
 local prev_params_jump = 1
 local sliders = {}
 local fader_follow_vals = {}
@@ -460,7 +460,7 @@ function set_play_mode(x)
   if x == 0 then
     -- faders
     params:set('output_level', prev_output_level)
-    params:set('amp_slew', prev_amp_slew)
+    params:set('amp_slew', prev_slew_level)
     params:set('16n_params_jump', prev_params_jump)
     for i = 1,16 do
       -- init prev_envs with correct values
