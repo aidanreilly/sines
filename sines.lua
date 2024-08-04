@@ -12,6 +12,7 @@
 -- E3 - selected sine volume
 -- K2 - toggle sines/ctrl
 -- K3 - toggle env/follow
+-- K1 - toggle/momentary for grid faders
 --
 -- 16n control
 -- n - sine volume
