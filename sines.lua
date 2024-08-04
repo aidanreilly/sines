@@ -37,6 +37,10 @@ local fader_abs_vals = {}
 local follow_clocks = {}
 local crow_out_pairs = {}
 
+-- switch between toggle and momentary behaviour for grid "faders"
+local mom_toggle = false
+-- hold previous values in momentary grid faders mode
+local last_vols = {}
 
 for i = 1, 16 do
   fader_follow_vals[i] = 0
@@ -843,9 +847,13 @@ function key(n, z)
       -- env follower
       params:set("play_mode", 0)
     end
+  -- switch toggle and momentary for grid faders, momentary while K1 is held
+  elseif n == 1 then
+    mom_toggle = z
   end
   screen_dirty = true
 end
+
 
 function redraw()
   redraw_screen()
@@ -972,9 +980,17 @@ end
 
 g.key = function(x,y,z)
   if z == 1 then
+    -- save previous value 
+    last_vols[x] = params:get("vol" .. x)
     local amp_value = util.linlin(0, grid_height, 0.0, 1.0, grid_height - y)
     params:set("vol" .. x, amp_value)
     edit = x - 1
+  else
+    -- in momentary mode when grid fader button is released go back to previous value
+    if mom_toggle == 1 then
+      params:set("vol" .. x, last_vols[x]) 
+    end  
+    edit = x -1
   end
   screen_dirty = true
 end
