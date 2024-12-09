@@ -87,7 +87,7 @@ local conf_16n=nil
 
 _16n.init = function(cc_cb_fn)
   for _,dev in pairs(midi.devices) do
-    if dev.name~=nil and dev.name == "16n" then
+    if dev.name~=nil and tab.contains({"16n", "16nx"}, dev.name) then
       print("detected 16n, will lookup its config via sysex")
 
       dev_16n = dev
